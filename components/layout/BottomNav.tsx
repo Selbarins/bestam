@@ -25,6 +25,13 @@ export function BottomNav() {
     setPendingHref(null);
   }, [pathname]);
 
+  useEffect(() => {
+  // Prefetch the main tabs so data is often ready
+  ["/money", "/goals", "/insights", "/settings"].forEach((href) => {
+    router.prefetch(href);
+  });
+  }, [router]);
+
   const current = pendingHref ?? pathname;
 
   return (
