@@ -3,7 +3,7 @@ type ExpenseRow = {
   rate_to_mad?: number | string | null;
   status: string;
   spent_on: string;
-  categories?: { name?: string } | null;
+  categories?: { name?: string } | { name?: string }[] | null;
 };
 
 type IncomeRow = {
@@ -18,6 +18,14 @@ function toMad(amount: number | string, rate?: number | string | null) {
 
 function monthKey(d: Date) {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+}
+
+function categoryName(
+  categories?: { name?: string } | { name?: string }[] | null
+) {
+  if (!categories) return "Other";
+  if (Array.isArray(categories)) return categories[0]?.name || "Other";
+  return categories.name || "Other";
 }
 
 export function calcInsights(
@@ -37,18 +45,19 @@ export function calcInsights(
     .filter((i) => i.received_at && i.received_at.startsWith(thisMonth))
     .reduce((s, i) => s + toMad(i.amount, i.rate_to_mad), 0);
 
-  // By category (this month)
   const byCategoryMap = new Map<string, number>();
   for (const e of actualExpenses) {
     if (!e.spent_on?.startsWith(thisMonth)) continue;
-    const name = e.categories?.name || "Other";
-    byCategoryMap.set(name, (byCategoryMap.get(name) || 0) + toMad(e.amount, e.rate_to_mad));
+    const name = categoryName(e.categories);
+    byCategoryMap.set(
+      name,
+      (byCategoryMap.get(name) || 0) + toMad(e.amount, e.rate_to_mad)
+    );
   }
   const byCategory = [...byCategoryMap.entries()]
     .map(([name, value]) => ({ name, value: Math.round(value * 100) / 100 }))
     .sort((a, b) => b.value - a.value);
 
-  // Last 6 months spend
   const monthlyMap = new Map<string, number>();
   for (let i = 5; i >= 0; i--) {
     const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
@@ -57,7 +66,10 @@ export function calcInsights(
   for (const e of actualExpenses) {
     const key = e.spent_on?.slice(0, 7);
     if (key && monthlyMap.has(key)) {
-      monthlyMap.set(key, (monthlyMap.get(key) || 0) + toMad(e.amount, e.rate_to_mad));
+      monthlyMap.set(
+        key,
+        (monthlyMap.get(key) || 0) + toMad(e.amount, e.rate_to_mad)
+      );
     }
   }
   const monthly = [...monthlyMap.entries()].map(([month, value]) => ({
