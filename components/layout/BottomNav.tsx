@@ -17,7 +17,7 @@ export function BottomNav() {
   const pathname = usePathname();
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-50 border-t border-[hsl(var(--border))] bg-[hsl(var(--card))]/80 backdrop-blur-xl">
+    <nav className="fixed bottom-0 left-0 right-0 z-50 border-t border-[hsl(var(--border))] bg-[hsl(var(--background))/90] backdrop-blur-xl">
       <div className="mx-auto flex max-w-lg items-center justify-around px-2 pb-[env(safe-area-inset-bottom)] pt-2">
         {items.map(({ href, label, icon: Icon }) => {
           const active =
@@ -30,13 +30,16 @@ export function BottomNav() {
               key={href}
               href={href}
               className={cn(
-                "flex flex-col items-center gap-1 rounded-lg px-3 py-2 text-xs transition-colors",
+                "flex flex-col items-center gap-1 rounded-xl px-3 py-2.5 text-[11px] font-medium transition-colors",
                 active
                   ? "text-[hsl(var(--primary))]"
                   : "text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--foreground))]"
               )}
             >
-              <Icon className="h-5 w-5" strokeWidth={active ? 2.5 : 2} />
+              <Icon
+                className="h-5 w-5"
+                strokeWidth={active ? 2.25 : 1.75}
+              />
               <span>{label}</span>
             </Link>
           );
