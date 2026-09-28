@@ -1,11 +1,9 @@
+import { Suspense } from "react";
 import { createClient } from "@/lib/supabase/server";
 import { calcBalance } from "@/lib/calc/balance";
 import { formatMoney } from "@/lib/format";
 
-// This page needs the user session + database → never prerender it
-export const dynamic = "force-dynamic";
-
-export default async function DashboardPage() {
+async function BalanceCard() {
   const supabase = await createClient();
 
   const [{ data: income }, { data: expenses }] = await Promise.all([
@@ -15,6 +13,32 @@ export default async function DashboardPage() {
 
   const balance = calcBalance(income ?? [], expenses ?? []);
 
+  return (
+    <section className="rounded-2xl border border-[hsl(var(--border))] bg-[hsl(var(--card))] p-6 shadow-sm">
+      <p className="text-sm text-[hsl(var(--muted-foreground))]">
+        Current balance
+      </p>
+      <p className="mt-1 text-3xl font-semibold tracking-tight">
+        {formatMoney(balance)}
+      </p>
+    </section>
+  );
+}
+
+function BalanceSkeleton() {
+  return (
+    <section className="rounded-2xl border border-[hsl(var(--border))] bg-[hsl(var(--card))] p-6 shadow-sm">
+      <p className="text-sm text-[hsl(var(--muted-foreground))]">
+        Current balance
+      </p>
+      <p className="mt-1 text-3xl font-semibold tracking-tight text-[hsl(var(--muted-foreground))]">
+        —
+      </p>
+    </section>
+  );
+}
+
+export default function DashboardPage() {
   return (
     <div className="space-y-10">
       {/* Hero number */}
@@ -30,15 +54,10 @@ export default async function DashboardPage() {
         </p>
       </header>
 
-      {/* Balance card */}
-      <section className="rounded-2xl border border-[hsl(var(--border))] bg-[hsl(var(--card))] p-6 shadow-sm">
-        <p className="text-sm text-[hsl(var(--muted-foreground))]">
-          Current balance
-        </p>
-        <p className="mt-1 text-3xl font-semibold tracking-tight">
-          {formatMoney(balance)}
-        </p>
-      </section>
+      {/* Balance – streams in after auth/cookies are available */}
+      <Suspense fallback={<BalanceSkeleton />}>
+        <BalanceCard />
+      </Suspense>
 
       {/* Quick actions */}
       <section className="grid grid-cols-2 gap-4">
