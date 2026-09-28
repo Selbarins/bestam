@@ -42,7 +42,7 @@ export function IncomeForm() {
             required
             autoFocus
             placeholder="0"
-            className="w-full border-0 bg-transparent font-serif text-5xl tracking-tight text-[hsl(var(--foreground))] outline-none placeholder:text-[hsl(var(--muted-foreground)/0.4)]"
+            className="w-full border-0 bg-transparent text-5xl font-semibold tracking-tight tabular-nums text-[hsl(var(--foreground))] outline-none transition-colors placeholder:text-[hsl(var(--muted-foreground)/0.35)] focus:text-[hsl(var(--primary))]"
           />
           <span className="absolute right-0 top-1/2 -translate-y-1/2 text-sm text-[hsl(var(--muted-foreground))]">
             MAD
@@ -62,11 +62,11 @@ export function IncomeForm() {
           name="name"
           type="text"
           defaultValue="Salary"
-          className="mt-2 w-full rounded-xl border border-[hsl(var(--border))] bg-[hsl(var(--card))] px-4 py-3 text-sm outline-none focus:border-[hsl(var(--primary)/0.5)]"
+          className="mt-2 w-full rounded-xl border border-[hsl(var(--border))] bg-[hsl(var(--card))] px-4 py-3 text-sm outline-none transition-all duration-150 focus:border-[hsl(var(--primary)/0.5)] focus:shadow-sm"
         />
       </div>
 
-      <label className="flex items-center gap-3 rounded-xl border border-[hsl(var(--border))] bg-[hsl(var(--card))] px-4 py-4">
+      <label className="flex cursor-pointer items-center gap-3 rounded-xl border border-[hsl(var(--border))] bg-[hsl(var(--card))] px-4 py-4 transition-all duration-150 hover:border-[hsl(var(--primary)/0.35)] has-[:checked]:border-[hsl(var(--primary))] has-[:checked]:bg-[hsl(var(--accent))]">
         <input
           type="checkbox"
           name="mark_received"
@@ -86,7 +86,7 @@ export function IncomeForm() {
       <button
         type="submit"
         disabled={isPending}
-        className="w-full rounded-2xl bg-[hsl(var(--primary))] py-4 text-sm font-medium text-[hsl(var(--primary-foreground))] transition active:scale-[0.98] disabled:opacity-60"
+        className="w-full rounded-2xl bg-[hsl(var(--primary))] py-4 text-sm font-medium text-[hsl(var(--primary-foreground))] transition-all duration-200 hover:brightness-110 active:scale-[0.98] disabled:opacity-60"
       >
         {isPending ? "Saving…" : "Save income"}
       </button>
