@@ -34,24 +34,25 @@ export async function updateSession(request: NextRequest) {
     }
   );
 
-  // Refresh session
+  // Refresh the session
   const { data } = await supabase.auth.getClaims();
   const user = data?.claims;
 
   const pathname = request.nextUrl.pathname;
 
-  // Public routes that don't need auth
+  // Public routes
   const isPublic =
     pathname === "/login" ||
     pathname.startsWith("/auth");
 
+  // Not logged in → go to login
   if (!user && !isPublic) {
     const url = request.nextUrl.clone();
     url.pathname = "/login";
     return NextResponse.redirect(url);
   }
 
-  // Already logged in → don't stay on login
+  // Already logged in and on login page → go home
   if (user && pathname === "/login") {
     const url = request.nextUrl.clone();
     url.pathname = "/";
