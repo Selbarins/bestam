@@ -1,8 +1,9 @@
+import { Suspense } from "react";
+import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { ExpenseForm } from "@/features/expenses/components/ExpenseForm";
-import Link from "next/link";
 
-export default async function ExpensesPage() {
+async function ExpensesContent() {
   const supabase = await createClient();
 
   const { data: categories } = await supabase
@@ -10,6 +11,24 @@ export default async function ExpensesPage() {
     .select("id, name, bucket")
     .order("sort_order");
 
+  return <ExpenseForm categories={categories ?? []} />;
+}
+
+function FormSkeleton() {
+  return (
+    <div className="space-y-8 animate-pulse">
+      <div className="h-16 rounded-xl bg-[hsl(var(--muted))]" />
+      <div className="grid grid-cols-2 gap-2">
+        {Array.from({ length: 6 }).map((_, i) => (
+          <div key={i} className="h-12 rounded-xl bg-[hsl(var(--muted))]" />
+        ))}
+      </div>
+      <div className="h-12 rounded-xl bg-[hsl(var(--muted))]" />
+    </div>
+  );
+}
+
+export default function ExpensesPage() {
   return (
     <div className="space-y-8">
       <div className="flex items-center justify-between">
@@ -27,7 +46,9 @@ export default async function ExpensesPage() {
         </Link>
       </div>
 
-      <ExpenseForm categories={categories ?? []} />
+      <Suspense fallback={<FormSkeleton />}>
+        <ExpensesContent />
+      </Suspense>
     </div>
   );
 }
