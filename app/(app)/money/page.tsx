@@ -1,7 +1,7 @@
 import { Suspense } from "react";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
-import { formatMoney } from "@/lib/format";
+import { ActivityRow } from "@/features/money/components/ActivityRow";
 
 async function RecentActivity() {
   const supabase = await createClient();
@@ -40,7 +40,10 @@ async function RecentActivity() {
     ...(expenses ?? []).map((e) => ({
       id: e.id,
       kind: "expense" as const,
-      title: e.note || (e.categories as { name?: string } | null)?.name || "Expense",
+      title:
+        e.note ||
+        (e.categories as { name?: string } | null)?.name ||
+        "Expense",
       amount: Number(e.amount),
       date: e.spent_on || e.created_at,
       meta: e.status === "planned" ? "Planned" : undefined,
@@ -65,31 +68,7 @@ async function RecentActivity() {
   return (
     <div className="space-y-2">
       {rows.map((row) => (
-        <div
-          key={`${row.kind}-${row.id}`}
-          className="flex items-center justify-between rounded-2xl border border-[hsl(var(--border))] bg-[hsl(var(--card))] px-4 py-3.5 transition-shadow duration-200 hover:shadow-sm"
-        >
-          <div className="min-w-0">
-            <p className="truncate text-sm font-medium">{row.title}</p>
-            <p className="mt-0.5 text-xs text-[hsl(var(--muted-foreground))]">
-              {new Date(row.date).toLocaleDateString("fr-MA", {
-                day: "numeric",
-                month: "short",
-              })}
-              {row.meta ? ` · ${row.meta}` : ""}
-            </p>
-          </div>
-          <p
-            className={`shrink-0 text-sm font-semibold tabular-nums ${
-              row.kind === "income"
-                ? "text-[hsl(var(--primary))]"
-                : "text-[hsl(var(--foreground))]"
-            }`}
-          >
-            {row.kind === "income" ? "+" : "−"}
-            {formatMoney(row.amount)}
-          </p>
-        </div>
+        <ActivityRow key={`${row.kind}-${row.id}`} {...row} />
       ))}
     </div>
   );
