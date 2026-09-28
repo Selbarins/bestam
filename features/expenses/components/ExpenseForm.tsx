@@ -30,7 +30,6 @@ export function ExpenseForm({ categories }: { categories: Category[] }) {
 
   return (
     <form action={handleSubmit} className="space-y-8">
-      {/* Amount – big and focused */}
       <div>
         <label
           htmlFor="amount"
@@ -49,7 +48,7 @@ export function ExpenseForm({ categories }: { categories: Category[] }) {
             required
             autoFocus
             placeholder="0"
-            className="w-full border-0 bg-transparent font-serif text-5xl tracking-tight text-[hsl(var(--foreground))] outline-none placeholder:text-[hsl(var(--muted-foreground)/0.4)]"
+            className="w-full border-0 bg-transparent text-5xl font-semibold tracking-tight tabular-nums text-[hsl(var(--foreground))] outline-none transition-colors placeholder:text-[hsl(var(--muted-foreground)/0.35)] focus:text-[hsl(var(--primary))]"
           />
           <span className="absolute right-0 top-1/2 -translate-y-1/2 text-sm text-[hsl(var(--muted-foreground))]">
             MAD
@@ -57,7 +56,6 @@ export function ExpenseForm({ categories }: { categories: Category[] }) {
         </div>
       </div>
 
-      {/* Categories */}
       <div>
         <p className="mb-3 text-sm font-medium text-[hsl(var(--muted-foreground))]">
           Category
@@ -66,7 +64,7 @@ export function ExpenseForm({ categories }: { categories: Category[] }) {
           {categories.map((cat) => (
             <label
               key={cat.id}
-              className="cursor-pointer rounded-xl border border-[hsl(var(--border))] bg-[hsl(var(--card))] px-3 py-3 text-sm transition has-[:checked]:border-[hsl(var(--primary))] has-[:checked]:bg-[hsl(var(--accent))]"
+              className="cursor-pointer rounded-xl border border-[hsl(var(--border))] bg-[hsl(var(--card))] px-3 py-3 text-sm transition-all duration-150 hover:border-[hsl(var(--primary)/0.4)] has-[:checked]:border-[hsl(var(--primary))] has-[:checked]:bg-[hsl(var(--accent))] has-[:checked]:shadow-sm"
             >
               <input
                 type="radio"
@@ -80,7 +78,6 @@ export function ExpenseForm({ categories }: { categories: Category[] }) {
         </div>
       </div>
 
-      {/* Optional note */}
       <div>
         <label
           htmlFor="note"
@@ -93,18 +90,16 @@ export function ExpenseForm({ categories }: { categories: Category[] }) {
           name="note"
           type="text"
           placeholder="Coffee, lunch…"
-          className="mt-2 w-full rounded-xl border border-[hsl(var(--border))] bg-[hsl(var(--card))] px-4 py-3 text-sm outline-none focus:border-[hsl(var(--primary)/0.5)]"
+          className="mt-2 w-full rounded-xl border border-[hsl(var(--border))] bg-[hsl(var(--card))] px-4 py-3 text-sm outline-none transition-all duration-150 focus:border-[hsl(var(--primary)/0.5)] focus:shadow-sm"
         />
       </div>
 
-      {error && (
-        <p className="text-sm text-red-600">{error}</p>
-      )}
+      {error && <p className="text-sm text-red-600">{error}</p>}
 
       <button
         type="submit"
         disabled={isPending}
-        className="w-full rounded-2xl bg-[hsl(var(--primary))] py-4 text-sm font-medium text-[hsl(var(--primary-foreground))] transition active:scale-[0.98] disabled:opacity-60"
+        className="w-full rounded-2xl bg-[hsl(var(--primary))] py-4 text-sm font-medium text-[hsl(var(--primary-foreground))] transition-all duration-200 hover:brightness-110 active:scale-[0.98] disabled:opacity-60"
       >
         {isPending ? "Saving…" : "Save expense"}
       </button>
