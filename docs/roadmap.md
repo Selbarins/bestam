@@ -2,24 +2,29 @@
 
 ## Phase 0 – Foundation
 - [x] Real README
-- [ ] Secure `.env.example`
-- [ ] Fill all docs
-- [ ] PWA manifest + icons
-- [ ] Clean up template routes
-- [ ] Basic app shell with bottom navigation
-- [ ] Lock down public sign-ups (Supabase dashboard)
+- [x] Secure `.env.example`
+- [x] Fill all docs
+- [x] PWA manifest
+- [x] Clean up template routes
+- [x] Basic app shell with bottom navigation
+- [x] Quiet-luxury design (ivory + sage, all sans)
+- [ ] Lock down public sign-ups (Supabase dashboard – manual)
+- [ ] App icons in `public/icons/`
 
 ## Phase 1 – Core tracking
-- [ ] Auth (login only, no public sign-up)
-- [ ] Categories (seed + settings)
-- [ ] Income (primary salary + “Received” button)
-- [ ] Expenses (fast capture)
-- [ ] Dashboard balance
+- [x] Auth (login only, proxy guard, logout)
+- [x] Categories table + seed
+- [x] Income (add + mark received)
+- [x] Expenses (fast capture)
+- [x] Dashboard balance (live)
+- [ ] Money overview page (list recent income/expenses)
+- [ ] Edit / delete transactions
+- [ ] Categories management in Settings
 
 ## Phase 2 – Planning
 - [ ] Shopping cart
 - [ ] Recurring items
-- [ ] Safe-to-Spend calculation
+- [ ] Safe-to-Spend calculation + hero number
 
 ## Phase 3 – Goals
 - [ ] Savings Target
