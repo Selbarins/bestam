@@ -1,109 +1,218 @@
-<a href="https://demo-nextjs-with-supabase.vercel.app/">
-  <img alt="Next.js and Supabase Starter Kit - the fastest way to build apps with Next.js and Supabase" src="https://demo-nextjs-with-supabase.vercel.app/opengraph-image.png">
-  <h1 align="center">Next.js and Supabase Starter Kit</h1>
-</a>
+# Bestam
 
-<p align="center">
- The fastest way to build apps with Next.js and Supabase
-</p>
+> A personal budget and financial stability app. Built for one user, designed to feel like a premium native app on iPhone.
 
-<p align="center">
-  <a href="#features"><strong>Features</strong></a> ·
-  <a href="#demo"><strong>Demo</strong></a> ·
-  <a href="#deploy-to-vercel"><strong>Deploy to Vercel</strong></a> ·
-  <a href="#clone-and-run-locally"><strong>Clone and run locally</strong></a> ·
-  <a href="#feedback-and-issues"><strong>Feedback and issues</strong></a>
-  <a href="#more-supabase-examples"><strong>More Examples</strong></a>
-</p>
-<br/>
+**Live:** [bestam.vercel.app](https://bestam.vercel.app)
+
+Bestam answers one question every day: **how much can I safely spend?** Everything else in the app exists to make that number accurate and to help you reach your goals.
+
+---
+
+## Principles
+
+- **Personal only.** One user, one account. Public sign-ups are disabled.
+- **One hero number.** Safe-to-Spend is the first thing you see.
+- **Two-tap capture.** Adding an expense must be faster than not tracking it.
+- **Small connected files.** One job per file, grouped by feature.
+- **Calm and futuristic.** Dark, glassy, large numbers, restrained motion.
+
+---
+
+## Tech stack
+
+| Layer | Choice |
+|---|---|
+| Framework | Next.js 15 (App Router), React 19, TypeScript |
+| UI | Tailwind CSS, Radix / shadcn-style components, lucide-react |
+| Backend | Supabase (Postgres, Auth, Row Level Security) |
+| Hosting | Vercel |
+| App type | PWA (Add to Home Screen on iPhone) |
+| Charts | Recharts *(to add in Phase 4)* |
+| AI review | Claude API *(to add in Phase 5)* |
+
+---
 
 ## Features
 
-- Works across the entire [Next.js](https://nextjs.org) stack
-  - App Router
-  - Pages Router
-  - Proxy
-  - Client
-  - Server
-  - It just works!
-- supabase-ssr. A package to configure Supabase Auth to use cookies
-- Password-based authentication block installed via the [Supabase UI Library](https://supabase.com/ui/docs/nextjs/password-based-auth)
-- Styling with [Tailwind CSS](https://tailwindcss.com)
-- Components with [shadcn/ui](https://ui.shadcn.com/)
-- Optional deployment with [Supabase Vercel Integration and Vercel deploy](#deploy-your-own)
-  - Environment variables automatically assigned to Vercel project
+### Signature features
 
-## Demo
+1. **Safe-to-Spend hero.** A single glowing number and a fluid ring for today and the month.
+   `balance − upcoming fixed bills − planned cart items − goal reserves`, divided by days left in the month.
+2. **Fast capture.** Amount, category, done. Later: iPhone Shortcut / Action Button and natural-language entry ("coffee 25").
+3. **What-if simulator.** Slide a category up or down and watch goal dates and runway move in real time.
+4. **Weekly AI review.** A short, honest Sunday summary: where you drifted, what improved, one suggestion.
 
-You can view a fully working demo at [demo-nextjs-with-supabase.vercel.app](https://demo-nextjs-with-supabase.vercel.app/).
+### Foundation
 
-## Deploy to Vercel
+- **Income:** primary salary plus other sources, with a "Received" button that timestamps the money.
+- **Expenses:** custom categories with icons and colors, grouped into Essentials / Lifestyle / Growth / Other. Planned vs actual.
+- **Recurring items:** rent, subscriptions and salary repeat automatically and feed the forecast.
+- **Shopping cart:** items with estimated price. Marking one as bought creates the expense. Planned items reduce Safe-to-Spend.
+- **Goals:** three types to start, more later (see below). Each can influence Safe-to-Spend.
+- **Insights:** spending by category, balance over time, budget vs actual, runway.
+- **Currency:** MAD by default. Each transaction stores its amount, currency and optional rate.
 
-Vercel deployment will guide you through creating a Supabase account and project.
+### Goal types
 
-After installation of the Supabase integration, all relevant environment variables will be assigned to the project so the deployment is fully functioning.
+| Type | Phase | What it does |
+|---|---|---|
+| Savings Target | 3 | Amount by date. Calculates the required monthly contribution. |
+| Emergency Fund | 3 | X months of expenses. Shows months of runway. |
+| Spending Cap | 3 | Limit per category per month. Live progress. |
+| Debt Payoff | later | Remaining balance and projected payoff date. |
+| Milestone | later | One-time purchase, can link to a cart item. |
+| Habit | later | e.g. reduce dining by 20%. |
 
-[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Fvercel%2Fnext.js%2Ftree%2Fcanary%2Fexamples%2Fwith-supabase&project-name=nextjs-with-supabase&repository-name=nextjs-with-supabase&demo-title=nextjs-with-supabase&demo-description=This+starter+configures+Supabase+Auth+to+use+cookies%2C+making+the+user%27s+session+available+throughout+the+entire+Next.js+app+-+Client+Components%2C+Server+Components%2C+Route+Handlers%2C+Server+Actions+and+Middleware.&demo-url=https%3A%2F%2Fdemo-nextjs-with-supabase.vercel.app%2F&external-id=https%3A%2F%2Fgithub.com%2Fvercel%2Fnext.js%2Ftree%2Fcanary%2Fexamples%2Fwith-supabase&demo-image=https%3A%2F%2Fdemo-nextjs-with-supabase.vercel.app%2Fopengraph-image.png)
+### Default categories
 
-The above will also clone the Starter kit to your GitHub, you can clone that locally and develop locally.
+- **Essentials:** Housing, Utilities, Groceries, Transport, Insurance, Health
+- **Lifestyle:** Dining Out, Entertainment, Subscriptions, Shopping, Fitness
+- **Growth:** Education, Side Project, Savings Transfers, Investments, Debt Payments
+- **Other:** Gifts & Donations, Travel, Misc
 
-If you wish to just develop locally and not deploy to Vercel, [follow the steps below](#clone-and-run-locally).
+### Deliberately not included
 
-## Clone and run locally
+Multi-user roles, sharing, bank sync, heavy export options, receipt photos and cart templates (maybe later).
 
-1. You'll first need a Supabase project which can be made [via the Supabase dashboard](https://database.new)
+---
 
-2. Create a Next.js app using the Supabase Starter template npx command
+## App screens
 
-   ```bash
-   npx create-next-app --example with-supabase with-supabase-app
-   ```
+| Screen | Contents |
+|---|---|
+| Dashboard | Safe-to-Spend ring, pinned goal, quick actions, mini trend |
+| Money | Income, Expenses, Shopping Cart |
+| Goals | All goals, create / edit, projections, what-if simulator |
+| Insights | Charts, filters, weekly AI review |
+| Settings | Categories, salary defaults, accent color |
 
-   ```bash
-   yarn create next-app --example with-supabase with-supabase-app
-   ```
+---
 
-   ```bash
-   pnpm create next-app --example with-supabase with-supabase-app
-   ```
+## Project structure
 
-3. Use `cd` to change into the app's directory
+```
+bestam/
+├── README.md
+├── .env.example
+├── docs/
+│   ├── features.md          # detailed feature spec
+│   ├── roadmap.md           # phases and checklist
+│   ├── database.md          # tables and relations
+│   └── design.md            # colors, typography, motion
+├── supabase/
+│   └── migrations/          # one small SQL file per table
+├── public/
+│   ├── manifest.json        # PWA manifest
+│   └── icons/
+├── app/                     # routes only, pages stay tiny
+│   ├── layout.tsx
+│   ├── (auth)/login/page.tsx
+│   └── (app)/
+│       ├── layout.tsx       # bottom navigation shell
+│       ├── page.tsx         # Dashboard
+│       ├── money/
+│       ├── goals/
+│       ├── insights/
+│       └── settings/
+├── features/                # one folder per feature
+│   ├── income/
+│   ├── expenses/
+│   ├── cart/
+│   ├── goals/
+│   ├── insights/
+│   └── categories/
+├── components/
+│   ├── ui/                  # primitives
+│   ├── layout/              # BottomNav, PageHeader
+│   └── shared/              # MoneyText, ProgressRing, GlassCard
+└── lib/
+    ├── supabase/            # client.ts, server.ts, middleware.ts
+    ├── calc/                # safe-to-spend.ts, runway.ts, forecast.ts
+    ├── format.ts
+    └── utils.ts
+```
 
-   ```bash
-   cd with-supabase-app
-   ```
+### File conventions
 
-4. Rename `.env.example` to `.env.local` and update the following:
+- **`app/`** only defines routes and composes components. Keep pages under about 50 lines.
+- **`features/<name>/`** always has the same shape:
+  - `queries.ts` reads data
+  - `actions.ts` writes data
+  - `types.ts` describes data
+  - `components/` displays data
+- **`lib/calc/`** holds all money math as pure functions with no UI or database calls, so each formula lives in exactly one place.
 
-  ```env
-  NEXT_PUBLIC_SUPABASE_URL=[INSERT SUPABASE PROJECT URL]
-  NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=[INSERT SUPABASE PROJECT API PUBLISHABLE OR ANON KEY]
-  ```
-  > [!NOTE]
-  > This example uses `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`, which refers to Supabase's new **publishable** key format.
-  > Both legacy **anon** keys and new **publishable** keys can be used with this variable name during the transition period. Supabase's dashboard may show `NEXT_PUBLIC_SUPABASE_ANON_KEY`; its value can be used in this example.
-  > See the [full announcement](https://github.com/orgs/supabase/discussions/29260) for more information.
+---
 
-  Both `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` can be found in [your Supabase project's API settings](https://supabase.com/dashboard/project/_?showConnect=true)
+## Roadmap
 
-5. You can now run the Next.js local development server:
+- [ ] **Phase 0: Foundation.** Secure `.env`, restructure folders, real README, PWA manifest, lock down sign-ups.
+- [ ] **Phase 1: Core tracking.** Auth (passkey / Face ID), categories, income, expenses, dashboard balance.
+- [ ] **Phase 2: Planning.** Shopping cart, recurring items, Safe-to-Spend.
+- [ ] **Phase 3: Goals.** Savings Target, Emergency Fund, Spending Cap, projections.
+- [ ] **Phase 4: Insights.** Charts, runway view, what-if simulator, motion and haptics polish.
+- [ ] **Phase 5: Smart.** Weekly AI review, natural-language capture, iPhone Shortcut, offline queue.
 
-   ```bash
-   npm run dev
-   ```
+---
 
-   The starter kit should now be running on [localhost:3000](http://localhost:3000/).
+## Getting started
 
-6. This template comes with the default shadcn/ui style initialized. If you instead want other ui.shadcn styles, delete `components.json` and [re-install shadcn/ui](https://ui.shadcn.com/docs/installation/next)
+### Requirements
 
-> Check out [the docs for Local Development](https://supabase.com/docs/guides/getting-started/local-development) to also run Supabase locally.
+- Node.js 20+
+- A Supabase project
 
-## Feedback and issues
+### Setup
 
-Please file feedback and issues over on the [Supabase GitHub org](https://github.com/supabase/supabase/issues/new/choose).
+```bash
+git clone https://github.com/Selbarins/bestam.git
+cd bestam
+npm install
+cp .env.example .env.local
+```
 
-## More Supabase examples
+Fill in `.env.local`:
 
-- [Next.js Subscription Payments Starter](https://github.com/vercel/nextjs-subscription-payments)
-- [Cookie-based Auth and the Next.js 13 App Router (free course)](https://youtube.com/playlist?list=PL5S4mPUpp4OtMhpnp93EFSo42iQ40XjbF)
-- [Supabase Auth and the Next.js App Router](https://github.com/supabase/supabase/tree/master/examples/auth/nextjs)
+```
+NEXT_PUBLIC_SUPABASE_URL=your-project-url
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
+```
+
+Then run:
+
+```bash
+npm run dev
+```
+
+The app runs at `http://localhost:3000`.
+
+### Supabase
+
+1. Create your single user in the Supabase dashboard.
+2. Disable public sign-ups under Authentication settings.
+3. Apply the SQL files in `supabase/migrations/` in order.
+4. Keep Row Level Security enabled on every table.
+
+### Deploy
+
+Push to `main`. Vercel builds and deploys automatically. Add the same environment variables in the Vercel project settings.
+
+---
+
+## Security
+
+- `.env.local` is never committed. Only `.env.example` is tracked.
+- Never expose the Supabase **service role** key to the client or the repo.
+- Sign-ups are disabled, and every table is protected by Row Level Security.
+
+---
+
+## Design direction
+
+Deep dark background, frosted glass panels, geometric typography, large confident numbers, progress shown as rings and fluid bars, and restrained motion. OLED-friendly dark mode by default. Accent color is still to be decided (electric cyan, soft violet or warm amber). Details will live in `docs/design.md`.
+
+---
+
+## License
+
+Private personal project. All rights reserved.
