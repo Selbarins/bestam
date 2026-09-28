@@ -2,6 +2,9 @@ import { createClient } from "@/lib/supabase/server";
 import { calcBalance } from "@/lib/calc/balance";
 import { formatMoney } from "@/lib/format";
 
+// This page needs the user session + database → never prerender it
+export const dynamic = "force-dynamic";
+
 export default async function DashboardPage() {
   const supabase = await createClient();
 
