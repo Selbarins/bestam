@@ -8,13 +8,13 @@ import { formatMoney } from "@/lib/format";
 async function DashboardNumbers() {
   const supabase = await createClient();
 
-  const [{ data: income }, { data: expenses }] = await Promise.all([
+    const [{ data: income }, { data: expenses }] = await Promise.all([
     supabase.from("income").select("amount, rate_to_mad, received_at"),
     supabase.from("expenses").select("amount, rate_to_mad, status"),
   ]);
 
   const balance = calcBalance(income ?? [], expenses ?? []);
-  const { safe, daysLeft } = calcSafeToSpend(balance);
+  const safe = calcSafeToSpend(income ?? [], expenses ?? []);
 
   return (
     <>
@@ -22,12 +22,11 @@ async function DashboardNumbers() {
         <p className="text-sm font-medium tracking-wide text-[hsl(var(--muted-foreground))]">
           Safe to spend today
         </p>
-        <h1 className="mt-2 text-5xl font-semibold tracking-tight tabular-nums text-[hsl(var(--foreground))]">
-          {formatMoney(safe)}
+        <h1 className="mt-2 text-6xl font-semibold tracking-tight tabular-nums text-[hsl(var(--foreground))]">
+          {formatMoney(safe.daily)}
         </h1>
         <p className="mt-3 text-sm text-[hsl(var(--muted-foreground))]">
-          {daysLeft} day{daysLeft === 1 ? "" : "s"} left · balance{" "}
-          {formatMoney(balance)}
+          {safe.daysLeft} days left · {formatMoney(safe.monthly)} this month
         </p>
       </header>
 
