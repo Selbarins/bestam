@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import { BottomNav } from "@/components/layout/BottomNav";
 
 export default function AppLayout({
@@ -8,7 +9,9 @@ export default function AppLayout({
   return (
     <div className="min-h-screen bg-[hsl(var(--background))] pb-24">
       <main className="mx-auto max-w-lg px-4 pt-6">{children}</main>
-      <BottomNav />
+      <Suspense fallback={null}>
+        <BottomNav />
+      </Suspense>
     </div>
   );
 }
