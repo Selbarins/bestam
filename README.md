@@ -1,109 +1,173 @@
-<a href="https://demo-nextjs-with-supabase.vercel.app/">
-  <img alt="Next.js and Supabase Starter Kit - the fastest way to build apps with Next.js and Supabase" src="https://demo-nextjs-with-supabase.vercel.app/opengraph-image.png">
-  <h1 align="center">Next.js and Supabase Starter Kit</h1>
-</a>
 
-<p align="center">
- The fastest way to build apps with Next.js and Supabase
-</p>
 
-<p align="center">
-  <a href="#features"><strong>Features</strong></a> ·
-  <a href="#demo"><strong>Demo</strong></a> ·
-  <a href="#deploy-to-vercel"><strong>Deploy to Vercel</strong></a> ·
-  <a href="#clone-and-run-locally"><strong>Clone and run locally</strong></a> ·
-  <a href="#feedback-and-issues"><strong>Feedback and issues</strong></a>
-  <a href="#more-supabase-examples"><strong>More Examples</strong></a>
-</p>
-<br/>
+BESTAM A personal PWA budget app on this stack is a great fit: fast to build, free/cheap to run, private by default, and “Add to Home Screen” gives you an almost-native feel on iPhone without the App Store.
+Here’s a refined take on your idea plus some high-value features worth considering, then a practical architecture and next discussion points.
+Core features (refined from your list)
 
-## Features
+Income / salary flow
+One primary salary + optional other income sources. A clear “Received” button (or toggle) that timestamps the money as available and updates the current balance. Support for irregular income if you ever have side projects.
+Expense tracking by category
+Customizable categories with icons/colors. Quick-add from the home screen or shopping cart. Optional notes, tags, or photo of receipt (Supabase storage). Ability to mark an expense as “planned” vs “actual”.
+Shopping cart / shopping list module
+This is one of the most useful differentiators for daily use.
+Add items + estimated price.
+Mark as bought → automatically create an expense (or prompt you).
+Running total vs remaining monthly budget.
+Optional: group by store or trip.
 
-- Works across the entire [Next.js](https://nextjs.org) stack
-  - App Router
-  - Pages Router
-  - Proxy
-  - Client
-  - Server
-  - It just works!
-- supabase-ssr. A package to configure Supabase Auth to use cookies
-- Password-based authentication block installed via the [Supabase UI Library](https://supabase.com/ui/docs/nextjs/password-based-auth)
-- Styling with [Tailwind CSS](https://tailwindcss.com)
-- Components with [shadcn/ui](https://ui.shadcn.com/)
-- Optional deployment with [Supabase Vercel Integration and Vercel deploy](#deploy-your-own)
-  - Environment variables automatically assigned to Vercel project
+Interactive graphs & trends
+Monthly / yearly spending by category (pie + bar).
+Balance over time (line).
+Budget vs actual (progress bars or waterfalls).
+Period comparison (this month vs last month, this year vs last year).
+Use a library like Recharts or Chart.js so you can filter by date range, category, and income source on the fly.
 
-## Demo
+Historical data & yearly goals
+Everything lives in Supabase so you can look back years. Store monthly snapshots or just keep the raw transactions and aggregate on the fly. Yearly goals become trivial once the data is there.
+Financial goals with reachability
+This is high-leverage. Examples:
+“Save $X by date Y”
+“Emergency fund of 3/6 months expenses”
+“Pay off specific debt”
+The app can project based on your average monthly surplus (or deficit) and tell you whether you’re on track, behind, or need to cut a certain amount per month. Color-code progress and show a simple forecast line.
 
-You can view a fully working demo at [demo-nextjs-with-supabase.vercel.app](https://demo-nextjs-with-supabase.vercel.app/).
 
-## Deploy to Vercel
+Expense Categories – Starting list to refine together
+We can make them fully customizable later, but a strong default set helps:
+Essentials
 
-Vercel deployment will guide you through creating a Supabase account and project.
+Housing / Rent
+Utilities
+Groceries
+Transport
+Insurance
+Health
 
-After installation of the Supabase integration, all relevant environment variables will be assigned to the project so the deployment is fully functioning.
+Lifestyle
 
-[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Fvercel%2Fnext.js%2Ftree%2Fcanary%2Fexamples%2Fwith-supabase&project-name=nextjs-with-supabase&repository-name=nextjs-with-supabase&demo-title=nextjs-with-supabase&demo-description=This+starter+configures+Supabase+Auth+to+use+cookies%2C+making+the+user%27s+session+available+throughout+the+entire+Next.js+app+-+Client+Components%2C+Server+Components%2C+Route+Handlers%2C+Server+Actions+and+Middleware.&demo-url=https%3A%2F%2Fdemo-nextjs-with-supabase.vercel.app%2F&external-id=https%3A%2F%2Fgithub.com%2Fvercel%2Fnext.js%2Ftree%2Fcanary%2Fexamples%2Fwith-supabase&demo-image=https%3A%2F%2Fdemo-nextjs-with-supabase.vercel.app%2Fopengraph-image.png)
+Dining Out
+Entertainment
+Subscriptions
+Shopping / Personal
+Fitness / Wellness
 
-The above will also clone the Starter kit to your GitHub, you can clone that locally and develop locally.
+Growth & Future
 
-If you wish to just develop locally and not deploy to Vercel, [follow the steps below](#clone-and-run-locally).
+Education / Learning
+Side Project / Business
+Savings Transfers
+Investments
+Debt Payments
 
-## Clone and run locally
+Other
 
-1. You'll first need a Supabase project which can be made [via the Supabase dashboard](https://database.new)
+Gifts & Donations
+Travel
+Misc / Unexpected
 
-2. Create a Next.js app using the Supabase Starter template npx command
+We can group them under higher-level buckets (Essentials / Lifestyle / Growth) so the graphs stay clean, while still letting you drill into any category.
+Does this feel close, or do you want to start from a completely different list?
 
-   ```bash
-   npx create-next-app --example with-supabase with-supabase-app
-   ```
+Goals System (the interesting part)
+You said you want Goal Categories, and each category should interact differently with the app and its metrics. Here’s a concrete proposal:
 
-   ```bash
-   yarn create next-app --example with-supabase with-supabase-app
-   ```
 
-   ```bash
-   pnpm create next-app --example with-supabase with-supabase-app
-   ```
 
-3. Use `cd` to change into the app's directory
 
-   ```bash
-   cd with-supabase-app
-   ```
 
-4. Rename `.env.example` to `.env.local` and update the following:
 
-  ```env
-  NEXT_PUBLIC_SUPABASE_URL=[INSERT SUPABASE PROJECT URL]
-  NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=[INSERT SUPABASE PROJECT API PUBLISHABLE OR ANON KEY]
-  ```
-  > [!NOTE]
-  > This example uses `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`, which refers to Supabase's new **publishable** key format.
-  > Both legacy **anon** keys and new **publishable** keys can be used with this variable name during the transition period. Supabase's dashboard may show `NEXT_PUBLIC_SUPABASE_ANON_KEY`; its value can be used in this example.
-  > See the [full announcement](https://github.com/orgs/supabase/discussions/29260) for more information.
 
-  Both `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` can be found in [your Supabase project's API settings](https://supabase.com/dashboard/project/_?showConnect=true)
 
-5. You can now run the Next.js local development server:
 
-   ```bash
-   npm run dev
-   ```
 
-   The starter kit should now be running on [localhost:3000](http://localhost:3000/).
 
-6. This template comes with the default shadcn/ui style initialized. If you instead want other ui.shadcn styles, delete `components.json` and [re-install shadcn/ui](https://ui.shadcn.com/docs/installation/next)
 
-> Check out [the docs for Local Development](https://supabase.com/docs/guides/getting-started/local-development) to also run Supabase locally.
 
-## Feedback and issues
 
-Please file feedback and issues over on the [Supabase GitHub org](https://github.com/supabase/supabase/issues/new/choose).
 
-## More Supabase examples
 
-- [Next.js Subscription Payments Starter](https://github.com/vercel/nextjs-subscription-payments)
-- [Cookie-based Auth and the Next.js 13 App Router (free course)](https://youtube.com/playlist?list=PL5S4mPUpp4OtMhpnp93EFSo42iQ40XjbF)
-- [Supabase Auth and the Next.js App Router](https://github.com/supabase/supabase/tree/master/examples/auth/nextjs)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Goal CategoryWhat it tracksHow it interacts with the appStabilityEmergency fund (X months of expenses)Auto-calculates needed amount from your average monthly spending. Shows “months of runway”.Savings TargetSpecific amount by a dateCalculates required monthly contribution. Warns if current surplus is too low.Debt PayoffRemaining balance + target dateShows progress + projected payoff date based on current payment rate.Spending Cap“Don’t spend more than $X on category Y this month”Live progress bar on that category. Affects “Safe to Spend”.MilestoneOne-time purchase or life eventSimple progress toward a fixed target. Can be linked to a shopping-cart item.Habit / Behaviore.g. “Reduce dining by 20%” or “No impulse buys this month”Tracks against previous period or a target %.
+You can create, edit, pause, or delete any goal at any time.
+
+The dashboard can surface the most relevant goal (or let you pin 1–2), and every goal can optionally influence the Safe-to-Spend number.
+
+Shopping Cart refinement
+Hybrid mode works well:
+
+Free-form list (name + estimated price + optional category + optional store).
+Toggle “Bought” → creates an expense (or asks you to confirm amount/category).
+Running total of the list vs remaining monthly budget / Safe-to-Spend.
+Ability to save lists as templates (“Weekly groceries”, “Project X gear”, etc.).
+Optional: mark items as “Planned” so they reduce Safe-to-Spend even before you buy them.
+
+This turns the cart into both a practical list and a planning tool.
+
+Visual Direction – “Futuristic & Coolest Design Ever”
+Not a trading terminal. Think more like:
+
+Deep dark background with subtle depth
+Soft glass / frosted panels
+Clean geometric typography
+Accent colors that feel alive (electric cyan, soft violet, or warm amber — we can decide)
+Smooth micro-interactions and page transitions
+Large, confident numbers
+Progress shown as elegant rings or fluid bars instead of boring progress bars
+Very restrained use of motion (nothing chaotic)
+Excellent dark mode by default (iPhone OLED friendly)
+
+Overall mood: calm power + clarity, not hype or neon chaos.
+
+Suggested Product Shape
+Home / Dashboard
+
+Current balance + Safe-to-Spend
+Primary goal progress (big and beautiful)
+Quick actions (Add Expense, Mark Salary Received, Open Cart)
+Mini trend sparkline
+
+Money
+
+Income (with Received button)
+Expenses (fast entry + categories)
+Shopping Cart
+
+Insights
+
+Interactive charts (period + category filters)
+Period comparison
+Month-end review
+
+Goals
+
+All goals by category
+Create / edit / projections
+
+Settings
+
+Categories, salary defaults, theme accents, export, etc.
+
+We can make this feel premium and fluid on iPhone while staying fully web-based (PWA).
