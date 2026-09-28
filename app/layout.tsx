@@ -1,9 +1,18 @@
 import type { Metadata, Viewport } from "next";
-import { Geist } from "next/font/google";
+import { DM_Sans, Instrument_Serif } from "next/font/google";
 import "./globals.css";
 
-const geist = Geist({
+const dmSans = DM_Sans({
   subsets: ["latin"],
+  variable: "--font-sans",
+  weight: ["400", "500", "600", "700"],
+});
+
+const instrumentSerif = Instrument_Serif({
+  subsets: ["latin"],
+  variable: "--font-serif",
+  weight: ["400"],
+  style: ["normal", "italic"],
 });
 
 export const metadata: Metadata = {
@@ -12,13 +21,13 @@ export const metadata: Metadata = {
   manifest: "/manifest.json",
   appleWebApp: {
     capable: true,
-    statusBarStyle: "black-translucent",
+    statusBarStyle: "default",
     title: "Bestam",
   },
 };
 
 export const viewport: Viewport = {
-  themeColor: "#0a0a0a",
+  themeColor: "#faf8f5",
   width: "device-width",
   initialScale: 1,
   maximumScale: 1,
@@ -31,8 +40,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className="dark">
-      <body className={`${geist.className} antialiased`}>{children}</body>
+    <html lang="en" className={`${dmSans.variable} ${instrumentSerif.variable}`}>
+      <body className="font-sans antialiased">{children}</body>
     </html>
   );
 }
