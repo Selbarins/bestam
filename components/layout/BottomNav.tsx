@@ -1,7 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
+import { useEffect, useState, useTransition } from "react";
 import { Home, Wallet, Target, BarChart3, Settings } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -15,31 +16,45 @@ const items = [
 
 export function BottomNav() {
   const pathname = usePathname();
+  const router = useRouter();
+  const [pendingHref, setPendingHref] = useState<string | null>(null);
+  const [isPending, startTransition] = useTransition();
+
+  // Clear optimistic state once the real route catches up
+  useEffect(() => {
+    setPendingHref(null);
+  }, [pathname]);
+
+  const current = pendingHref ?? pathname;
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-50 border-t border-[hsl(var(--border))] bg-[hsl(var(--background))/90] backdrop-blur-xl">
+    <nav className="fixed bottom-0 left-0 right-0 z-50 border-t border-[hsl(var(--border))] bg-[hsl(var(--card))]/80 backdrop-blur-xl">
       <div className="mx-auto flex max-w-lg items-center justify-around px-2 pb-[env(safe-area-inset-bottom)] pt-2">
         {items.map(({ href, label, icon: Icon }) => {
           const active =
             href === "/"
-              ? pathname === "/"
-              : pathname.startsWith(href);
+              ? current === "/"
+              : current.startsWith(href);
 
           return (
             <Link
               key={href}
               href={href}
+              onClick={(e) => {
+                // Instant visual feedback
+                setPendingHref(href);
+                startTransition(() => {
+                  router.push(href);
+                });
+              }}
               className={cn(
-                "flex flex-col items-center gap-1 rounded-xl px-3 py-2.5 text-[11px] font-medium transition-colors",
+                "flex flex-col items-center gap-1 rounded-lg px-3 py-2 text-xs transition-colors",
                 active
                   ? "text-[hsl(var(--primary))]"
                   : "text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--foreground))]"
               )}
             >
-              <Icon
-                className="h-5 w-5"
-                strokeWidth={active ? 2.25 : 1.75}
-              />
+              <Icon className="h-5 w-5" strokeWidth={active ? 2.5 : 2} />
               <span>{label}</span>
             </Link>
           );
