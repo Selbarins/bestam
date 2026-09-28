@@ -32,6 +32,38 @@ export async function createGoal(formData: FormData) {
   return { success: true };
 }
 
+export async function contributeToGoal(id: string, formData: FormData) {
+  const supabase = await createClient();
+  const amount = Number(formData.get("amount"));
+
+  if (!amount || amount <= 0) {
+    return { error: "Amount must be greater than 0" };
+  }
+
+  const { data: goal, error: fetchError } = await supabase
+    .from("goals")
+    .select("current_amount")
+    .eq("id", id)
+    .single();
+
+  if (fetchError || !goal) {
+    return { error: fetchError?.message || "Goal not found" };
+  }
+
+  const next = Number(goal.current_amount) + amount;
+
+  const { error } = await supabase
+    .from("goals")
+    .update({ current_amount: next })
+    .eq("id", id);
+
+  if (error) return { error: error.message };
+
+  revalidatePath("/goals");
+  revalidatePath("/");
+  return { success: true };
+}
+
 export async function deleteGoal(id: string) {
   const supabase = await createClient();
   const { error } = await supabase.from("goals").delete().eq("id", id);
