@@ -90,19 +90,32 @@ export async function deleteGoal(id: string) {
   return { success: true };
 }
 
-/** Remaining savings/emergency target not yet funded — reduces Safe-to-Spend */
+/** Monthly set-aside for open savings/emergency goals */
 export async function getGoalReservesMad() {
   const supabase = await createClient();
   const { data } = await supabase
     .from("goals")
-    .select("type, target_amount, current_amount")
+    .select("type, target_amount, current_amount, target_date")
     .in("type", ["savings", "emergency"]);
 
+  const now = new Date();
   return (data ?? []).reduce((s, g) => {
-    const left = Math.max(0, Number(g.target_amount) - Number(g.current_amount));
-    // only reserve a month's slice if savings has a long runway — simple: full remaining / 1 month max impact
-    // pragmatic: reserve min(remaining, remaining) as monthly set-aside = remaining / max(1, months) 
-    // v1: count full remaining so STS is conservative
-    return s + left;
+    const remaining = Math.max(
+      0,
+      Number(g.target_amount) - Number(g.current_amount)
+    );
+    if (remaining <= 0) return s;
+
+    if (g.type === "savings" && g.target_date) {
+      const end = new Date(g.target_date);
+      let months =
+        (end.getFullYear() - now.getFullYear()) * 12 +
+        (end.getMonth() - now.getMonth());
+      if (end.getDate() < now.getDate()) months -= 1;
+      months = Math.max(1, months);
+      return s + remaining / months;
+    }
+    // emergency: spread over 6 months by default
+    return s + remaining / 6;
   }, 0);
 }
