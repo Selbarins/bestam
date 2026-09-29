@@ -1,4 +1,4 @@
-   # Bestam
+# Bestam
 
 > A private, free, solo personal-finance app.
 >
@@ -188,56 +188,61 @@ Small features that make Bestam fit real local money habits. All optional, none 
 ### Rules
 
 1. **Core works with no AI.** Every number and every screen functions without a key.
-2. **AI never calculates.** All figures come from `lib/calc/`. AI may only *phrase* or *parse*.
-3. **Deterministic first, AI as fallback.** Try rules, regex, and learned keywords first; call a model only when they fail.
-4. **Send aggregates, not diaries.** Prompts contain totals and percentages, never raw notes, merchant names, or account balances.
-5. **Opt-in, inspectable.** A Settings toggle (default **off**) and a "show exactly what will be sent" preview.
-6. **Cache and cap.** One review per period, stored in the DB. Hard daily cap on calls.
-7. **Free tier only.** If limits change or the key is missing, the app silently uses the rule-based text.
+2. **AI never calculates.** All figures come from `lib/calc/`. AI may only *parse* messy input, *translate* a question into a structured query, or *phrase* facts.
+3. **Ladder: template → rules → AI.** Try the cheapest option first; call a model only when the others fail.
+4. **Aggregates, not diaries.** Prompts carry totals and percentages, never raw notes, merchant names, or balances.
+5. **Opt-in and inspectable.** Settings toggle (default **off**) plus a "show exactly what will be sent" preview.
+6. **Cache and cap.** Results are cached (per day, per input hash). Hard daily call cap and per-feature `max_tokens`.
+7. **Never block the UI.** On timeout, 429, or a missing key, show the deterministic result immediately.
+8. **Fact-check every sentence.** Any number in AI text must appear in the facts supplied to it; otherwise discard the text and use the template.
 
-### Where AI is worth using (and where it isn't)
+### Daily AI touchpoints
 
-| Function | Use AI? | Approach | Approx. tokens / call |
-|---|---|---|---|
-| Safe-to-Spend, what-if, forecast, runway, what-changed | **No** | Deterministic | 0 |
-| Expense text parsing (`coffee 25`) | Rarely | Regex first; AI **only** if it fails or is ambiguous | ~80 in / 40 out |
-| Category suggestion | Rarely | Learn `note → category` from your history first; AI only for unseen words | ~60 in / 10 out |
-| Weekly / monthly review wording | **Yes** | Rule-based facts → AI rewrites in 3 sentences, cached per period | ~200 in / 120 out |
-| Natural-language questions ("how much on dining in Aug?") | Later | AI converts to a **structured query** that deterministic code runs; AI never sees the answer data unless needed to phrase it | ~150 in / 80 out |
+| # | Touchpoint | Trigger | What AI does | What code does | ~Tokens |
+|---|---|---|---|---|---|
+| 1 | **Smart capture** | You type or dictate a line | Turns messy, mixed-language text (`kafé 12 + taxi 15dh`, Darija/French/English) into JSON `[{amount, note, category_guess}]` | Shows a confirm card; saves on one tap; stores `note → category` so repeat words skip AI | 100 in / 60 out |
+| 2 | **Morning brief** | First app open each day (cached) | Phrases 1-2 calm sentences | Computes Safe-to-Spend, next bill, pace, goal facts | 150-200 |
+| 3 | **Ask Bestam** | You ask a question | Converts the question to a structured query, e.g. `{metric:"sum", category:"dining", range:"2026-08"}`. It never sees your rows | Runs the query on your data; templated answer (optional AI phrasing) | 150-250 |
+| 4 | **Purchase coach** | "Can I afford this?" | Words one sentence | Finds the earliest date the purchase becomes comfortable | ~100 |
+| 5 | **Smart nudges** | A trigger fires (pace > 80%, cap at 90%, bill due tomorrow, Safe-to-Spend hits zero) | Words the nudge for unusual cases | Detects triggers; fixed templates cover common ones | ~80 |
+| 6 | **Weekly / monthly review** | Period ends (cached) | Rewrites facts into 3 sentences | Computes the facts | ~200 |
 
-Total expected usage: **a few hundred tokens per week**, which is effectively zero cost even on paid pricing.
+Never AI: Safe-to-Spend, forecasts, what-if, runway, and "What changed?" (all deterministic).
+
+**Expected daily use:** about 9 calls and ~1,700 tokens (~50k/month). That is inside free limits and a fraction of a cent even on paid pricing. Capture calls shrink over time as category memory grows.
 
 ### Provider choice
 
-**Primary: Groq free tier, `llama-3.1-8b-instant`.**
-Why: it is the cheapest capable option (about $0.05 / $0.08 per 1M input/output tokens if you ever exceed free limits), the free tier requires no credit card, it offers a high daily request allowance for small prompts, and the repo already has a Groq integration in `lib/calc/ai-review.ts`. Groq also states it does not retain inference data by default. Verify current limits and data terms in the Groq console before enabling.
+**Primary: Groq free tier, `llama-3.1-8b-instant`.** Cheapest capable option (about $0.05 / $0.08 per 1M input/output tokens if you ever pass the free limits), no credit card required, generous daily request allowance for small prompts, and already integrated in the repo. Groq states it does not retain inference data by default. Per-minute token limits are the practical constraint, so keep prompts small. **Verify current limits and data terms in the Groq console.**
 
-**Fallback: Cloudflare Workers AI free allocation.** Also positioned as non-training for customer content; a good second provider behind the same interface.
+**Fallback: Cloudflare Workers AI free allocation**, behind the same interface.
 
-**Avoid for financial data: Gemini's free tier.** Its generous quota is attractive, but Google's free tier may use your prompts to improve its products. That conflicts with this project's privacy principle. If you ever use it, send only anonymized aggregates.
+**Avoid for financial data: Gemini's free tier.** The quota is generous, but Google's free tier may use prompts to improve its products, which conflicts with the privacy principle.
 
-**Avoid as a default: OpenRouter `:free` models.** The daily free request cap is small, and "free" does not guarantee no data retention.
+**Avoid as default: OpenRouter `:free` models.** Small daily cap, and "free" does not mean "not retained".
 
-> Free-tier limits and terms change often. Treat every number above as "verify before relying on it".
+> Free-tier limits and terms change often. Treat every number here as "verify before relying on it".
 
 ### Implementation shape
 
 ```text
 lib/ai/
-  provider.ts        // interface: complete(prompt, {maxTokens}) → string | null
-  groq.ts            // primary
-  cloudflare.ts      // optional fallback
-  budget.ts          // daily call cap + per-feature token caps
-  redact.ts          // builds the aggregate-only payload
-lib/calc/weekly-review.ts   // deterministic facts (source of truth)
+  provider.ts      AiProvider interface: complete(prompt, {maxTokens}) -> string | null
+  groq.ts          primary
+  cloudflare.ts    optional fallback
+  budget.ts        daily call cap, per-feature token caps, cache by input hash
+  redact.ts        builds aggregate-only payloads ("Item A", never raw notes)
+  fact-check.ts    rejects AI text containing numbers not present in the facts
+  capture.ts       parse-with-AI fallback + note -> category memory
+  ask.ts           question -> structured query (whitelisted metrics only)
+lib/calc/          deterministic source of truth
 ```
 
-- One `AiProvider` interface, so swapping providers is a config change.
-- `max_tokens` capped per feature (parse: 40, category: 10, review: 150).
-- `temperature ≤ 0.3` for parsing, `0.4` for prose.
-- On any error, timeout, or missing key: return the rule-based lines. Never block the UI.
-- Store the generated review with a hash of its input facts; regenerate only when facts change.
-- Never send: raw notes, merchant names, account balances, goal names (use "Goal A"), or anything that identifies you.
+- `max_tokens`: parse 60, category 10, brief 100, review 150. Temperature 0.2 for JSON, 0.4 for prose.
+- JSON outputs are validated against a schema (zod); invalid output falls back to manual entry.
+- **Ask Bestam** only executes whitelisted query shapes, so a prompt cannot make the app run arbitrary SQL.
+- Cache key = feature + hash(facts). Regenerate only when facts change.
+- Never send: raw notes, merchant names, balances, goal names (use "Goal A"), or anything identifying you.
 
 ---
 
@@ -270,6 +275,55 @@ Add two semantic tokens and use them sparingly: **caution** (warm amber) and **n
 - Bottom navigation with blur and safe-area padding.
 - Motion: 150–300 ms, opacity/transform/shadow only. `active:scale-[0.98]`.
 - Progress as rings or slim bars, never gamified.
+
+### Home screen: the Wallet
+
+The home screen is a **wallet object** you open every day. It replaces the plain balance card. It borrows the wallet metaphor of modern card apps, restyled in sage leather on ivory, and rebuilt around Safe-to-Spend instead of "total balance".
+
+```text
+┌──────────────────────────────┐
+│  ≡      Bestam         +     │  menu (Settings) · date and pay cycle · quick add
+│                              │
+│   ┌─Bank──┐ ┌─Cash─┐        │  account cards peek out of the wallet
+│  ┌┴───────┴─┴──────┴┐       │  tap a card to switch account
+│  │  SAFE TO SPEND    │       │  sage leather wallet, stitched edge
+│  │  327 MAD  /day    │       │  hero number in the front pocket
+│  │  Balance 25,867   │       │  secondary, hideable
+│  │ [Can I afford…?] ⇄ 👁│      │  pills: afford check · reconcile · hide amounts
+│  └───────────────────┘       │
+│  "Rent in 3 days. You're     │  morning brief (AI-phrased, template fallback)
+│   on pace this week."        │
+│  Quick spend        See all  │  learned favorites: Coffee 25 · Taxi 15 · Lunch 60
+│  (+) (☕) (🚕) (🍽)           │  one tap = one expense
+│  Upcoming           See all  │  next bills and income, with days left
+│  [Rent 5 Oct] [Salary 2 Oct] │
+│  Latest                      │  last transactions, swipe to edit or undo
+│  [Coffee] [Groceries] ...    │
+│ Home Money (◎) Goals Insights│  bottom nav, center button = capture
+└──────────────────────────────┘
+```
+
+**Behavior**
+
+- **Wallet card.** Front pocket shows Safe-to-Spend (today / until payday toggle) and the balance underneath. The eye icon hides all amounts for privacy in public.
+- **Peeking account cards.** Bank, Cash, and Savings appear behind the pocket. Tap to switch the balance shown; Savings stays excluded from Safe-to-Spend.
+- **Tap the hero number** to open the "explain this number" sheet (income, bills, goal reserves, buffer).
+- **Pills:** *Can I afford this?* opens the decision sheet; the swap icon opens *Reconcile balance*.
+- **Morning brief.** One or two sentences under the wallet, cached per day.
+- **Quick spend** replaces "quick top-up contacts". Bestam is solo, so it shows your most frequent expenses as one-tap chips learned from history. Long-press to edit the amount.
+- **Upcoming** shows the next few timeline events with days remaining.
+- **Latest** shows recent transactions as small cards; swipe for edit or undo.
+- **Center button** opens capture (type, dictate, or tap a chip). Settings moves to the header menu, which frees the fifth tab for the capture button.
+- **States:** a calm zero-state when Safe-to-Spend reaches 0 ("Nothing free today; back on track on the 5th"), and a first-run empty wallet that invites adding the first income.
+
+**Visual spec**
+
+- Wallet: flat sage leather (`--primary`), one darker pocket shape, a stitched hairline, and a soft contact shadow. No gradients on the leather.
+- Peeking cards: ivory and sand fills with hairline borders; text in warm charcoal.
+- Numbers: DM Sans, `tabular-nums`, hero at `text-5xl`, "MAD" in muted small caps.
+- Cards and chips: `rounded-2xl`, `--card` fill, `--border` hairline.
+- Motion: on open, the pocket cards rise 8-12 px and settle (200-300 ms). The hero number counts up briefly on change. Nothing else animates.
+- Avoid: purple, glossy leather, glass blur, avatars, contact lists, or anything social.
 
 ### Cleanup that follows from this decision
 
@@ -329,6 +383,7 @@ Ordered by **dependency and trust**, not by how impressive a feature sounds.
 
 - [ ] Timeline-based calculation in `lib/calc/safe-to-spend.ts`
 - [ ] "Explain this number" breakdown sheet
+- [ ] **Wallet home redesign** (see [Home screen](#home-screen-the-wallet)): wallet card, peeking accounts, hide-amounts toggle, quick spend chips, upcoming and latest rows, center capture button
 - [ ] Today / until-payday toggle
 - [ ] Buffer protection and calm zero-state
 - [ ] Full test suite for edge cases (month boundaries, late income, negative balance, foreign currency)
@@ -379,14 +434,17 @@ Ordered by **dependency and trust**, not by how impressive a feature sounds.
 - [ ] Learn note → category from history
 - [ ] iPhone Shortcut and Action Button guide in `docs/`
 
-### Phase 10: Optional AI `P3`
+### Phase 10: Daily AI `P3`
 
 - [x] Weekly review polish via Groq (needs the rules in [section 6](#6-ai-policy-and-the-cheap-ai-plan))
-- [ ] Provider interface, budget caps, and redaction layer
+- [ ] `lib/ai/` provider interface, budget caps, redaction, and fact-check guard
 - [ ] Opt-in toggle with "what will be sent" preview
-- [ ] Cache reviews per period
-- [ ] AI fallback for unparsed expense text
-- [ ] Natural-language questions to structured queries
+- [ ] Smart capture: AI fallback parser with confirm card, plus `note -> category` memory
+- [ ] Morning brief (cached per day, template fallback)
+- [ ] Ask Bestam (question -> whitelisted structured query)
+- [ ] Purchase coach sentence for "Can I afford this?"
+- [ ] Trigger-based nudges
+- [ ] Cache weekly and monthly reviews
 
 ### Extras (any time, after Phase 3)
 
@@ -434,15 +492,16 @@ bestam/
 - `lib/calc/`: pure functions. Deterministic, testable, independent of React, Supabase, and AI.
 - No page or component computes financial totals itself.
 
-**Navigation (five tabs, no more)**
+**Navigation (four tabs and a capture button)**
 
-| Tab | Contents |
+| Item | Contents |
 |---|---|
-| Home | Safe-to-Spend, upcoming, pace, pinned goal, quick add |
+| Home | The Wallet: Safe-to-Spend, accounts, brief, quick spend, upcoming, latest |
 | Money | Income, expenses, cart, recurring, timeline |
+| **Capture (center)** | Type, dictate, or tap a chip to add an expense |
 | Goals | Goals, projections, what-if |
-| Insights | What changed, trends, monthly summary, runway |
-| Settings | Categories, accounts, buffer, pay cycle, AI toggle, export |
+| Insights | What changed, Ask Bestam, trends, monthly summary, runway |
+| Settings (header menu) | Categories, accounts, buffer, pay cycle, AI toggle, export |
 
 **Stack**
 
