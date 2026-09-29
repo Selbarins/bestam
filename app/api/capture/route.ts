@@ -2,8 +2,6 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { parseExpenseText, matchCategory } from "@/lib/nl/parse-expense";
 
-export const runtime = "nodejs";
-
 export async function POST(req: NextRequest) {
   const token = process.env.CAPTURE_TOKEN;
   if (!token) {
