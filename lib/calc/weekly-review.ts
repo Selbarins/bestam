@@ -5,7 +5,7 @@ type Expense = {
   rate_to_mad?: number | string | null;
   status: string;
   spent_on?: string | null;
-  categories?: { name?: string } | null;
+  categories?: { name?: string } | { name?: string }[] | null;
 };
 
 type Income = {
@@ -18,10 +18,18 @@ function toMad(amount: number | string, rate?: number | string | null) {
   return Number(amount) * Number(rate ?? 1);
 }
 
+function categoryName(
+  categories?: { name?: string } | { name?: string }[] | null
+) {
+  if (!categories) return "Uncategorized";
+  if (Array.isArray(categories)) return categories[0]?.name || "Uncategorized";
+  return categories.name || "Uncategorized";
+}
+
 function startOfWeek(d = new Date()) {
   const x = new Date(d);
-  const day = x.getDay(); // 0 Sun
-  const diff = day === 0 ? 6 : day - 1; // Monday start
+  const day = x.getDay();
+  const diff = day === 0 ? 6 : day - 1;
   x.setDate(x.getDate() - diff);
   x.setHours(0, 0, 0, 0);
   return x;
@@ -32,10 +40,7 @@ export function buildWeeklyReview(expenses: Expense[], income: Income[]) {
   const weekIso = weekStart.toISOString().slice(0, 10);
 
   const weekExpenses = expenses.filter(
-    (e) =>
-      e.status === "actual" &&
-      e.spent_on &&
-      e.spent_on >= weekIso
+    (e) => e.status === "actual" && e.spent_on && e.spent_on >= weekIso
   );
 
   const spent = weekExpenses.reduce(
@@ -45,8 +50,7 @@ export function buildWeeklyReview(expenses: Expense[], income: Income[]) {
 
   const byCat: Record<string, number> = {};
   for (const e of weekExpenses) {
-    const name =
-      (e.categories as { name?: string } | null)?.name || "Uncategorized";
+    const name = categoryName(e.categories);
     byCat[name] = (byCat[name] || 0) + toMad(e.amount, e.rate_to_mad);
   }
 
@@ -82,7 +86,6 @@ export function buildWeeklyReview(expenses: Expense[], income: Income[]) {
     );
   }
 
-  // One suggestion
   if (top && top[1] > spent * 0.4 && spent > 0) {
     lines.push(
       `Suggestion: ${top[0]} is over 40% of weekly spend — worth a soft cap?`
@@ -90,7 +93,9 @@ export function buildWeeklyReview(expenses: Expense[], income: Income[]) {
   } else if (weekExpenses.length === 0) {
     lines.push("Suggestion: log one small expense today to keep the habit.");
   } else {
-    lines.push("Suggestion: check Safe-to-Spend before the next discretionary buy.");
+    lines.push(
+      "Suggestion: check Safe-to-Spend before the next discretionary buy."
+    );
   }
 
   return {
