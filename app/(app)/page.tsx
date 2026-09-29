@@ -8,11 +8,16 @@ import { formatMoney } from "@/lib/format";
 async function DashboardNumbers() {
   const supabase = await createClient();
 
-  const [{ data: income }, { data: expenses }, { data: cart }] =
+  const [{ data: income }, { data: expenses }, { data: cart }, { data: recurring }] =
     await Promise.all([
       supabase.from("income").select("amount, rate_to_mad, received_at"),
       supabase.from("expenses").select("amount, rate_to_mad, status"),
       supabase.from("cart_items").select("estimated_amount, rate_to_mad"),
+      supabase
+        .from("recurring_items")
+        .select("amount, rate_to_mad, kind, active")
+        .eq("active", true)
+        .eq("kind", "expense"),
     ]);
 
   const cartTotal = (cart ?? []).reduce(
@@ -21,8 +26,18 @@ async function DashboardNumbers() {
     0
   );
 
+  const recurringExpense = (recurring ?? []).reduce(
+    (s, i) => s + Number(i.amount) * Number(i.rate_to_mad ?? 1),
+    0
+  );
+
   const balance = calcBalance(income ?? [], expenses ?? []);
-  const safe = calcSafeToSpend(income ?? [], expenses ?? [], cartTotal);
+  const safe = calcSafeToSpend(
+    income ?? [],
+    expenses ?? [],
+    cartTotal,
+    recurringExpense
+  );
 
   return (
     <>
