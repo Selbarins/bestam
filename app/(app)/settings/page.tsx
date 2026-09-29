@@ -1,6 +1,8 @@
 import { Suspense } from "react";
 import { createClient } from "@/lib/supabase/server";
 import { LogoutButton } from "@/components/logout-button";
+import { CategoryForm } from "@/features/categories/components/CategoryForm";
+import { CategoryRow } from "@/features/categories/components/CategoryRow";
 
 async function AccountSection() {
   const supabase = await createClient();
@@ -26,16 +28,17 @@ async function CategoriesSection() {
     .select("id, name, bucket")
     .order("sort_order");
 
-  const buckets: Record<string, { id: string; name: string }[]> = {
-    essentials: [],
-    lifestyle: [],
-    growth: [],
-    other: [],
-  };
+  const buckets: Record<string, { id: string; name: string; bucket: string }[]> =
+    {
+      essentials: [],
+      lifestyle: [],
+      growth: [],
+      other: [],
+    };
 
   for (const cat of categories ?? []) {
     if (buckets[cat.bucket]) {
-      buckets[cat.bucket].push({ id: cat.id, name: cat.name });
+      buckets[cat.bucket].push(cat);
     }
   }
 
@@ -53,9 +56,11 @@ async function CategoriesSection() {
           Categories
         </h2>
         <p className="mt-0.5 text-xs text-[hsl(var(--muted-foreground))]">
-          Used when adding expenses
+          Used when adding expenses · edit or delete anytime
         </p>
       </div>
+
+      <CategoryForm />
 
       {Object.entries(buckets).map(([key, items]) =>
         items.length === 0 ? null : (
@@ -66,14 +71,14 @@ async function CategoriesSection() {
             <p className="mb-2 text-xs font-medium uppercase tracking-wide text-[hsl(var(--muted-foreground))]">
               {labels[key]}
             </p>
-            <div className="flex flex-wrap gap-2">
+            <div className="space-y-1.5">
               {items.map((item) => (
-                <span
+                <CategoryRow
                   key={item.id}
-                  className="rounded-lg bg-[hsl(var(--muted))] px-2.5 py-1 text-xs font-medium"
-                >
-                  {item.name}
-                </span>
+                  id={item.id}
+                  name={item.name}
+                  bucket={item.bucket}
+                />
               ))}
             </div>
           </div>
