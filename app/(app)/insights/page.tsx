@@ -5,6 +5,8 @@ import { formatMoney } from "@/lib/format";
 import { CategoryChart } from "@/features/insights/components/CategoryChart";
 import { CategoryLegend } from "@/features/insights/components/CategoryLegend";
 import { MonthlyChart } from "@/features/insights/components/MonthlyChart";
+import { buildWeeklyReview } from "@/lib/calc/weekly-review";
+import { WeeklyReview } from "@/features/insights/components/WeeklyReview";
 
 async function InsightsContent() {
   const supabase = await createClient();
@@ -17,9 +19,11 @@ async function InsightsContent() {
   ]);
 
   const insights = calcInsights(expenses ?? [], income ?? []);
+  const review = buildWeeklyReview(expenses ?? [], income ?? []);
 
   return (
     <div className="space-y-6">
+    <WeeklyReview lines={review.lines} weekStart={review.weekStart} />
       {/* Summary cards */}
       <section className="grid grid-cols-2 gap-3">
         <div className="rounded-2xl border border-[hsl(var(--border))] bg-[hsl(var(--card))] p-4">
