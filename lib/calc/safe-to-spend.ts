@@ -22,13 +22,13 @@ function daysLeftInMonth(from = new Date()) {
 }
 
 /**
- * Safe-to-Spend v1
- * (received income − actual expenses − planned expenses) / days left
- * Later: subtract recurring bills, cart planned, goal reserves.
+ * Safe-to-Spend
+ * (received income − actual − planned expenses − cart total) / days left
  */
 export function calcSafeToSpend(
   income: IncomeRow[],
   expenses: ExpenseRow[],
+  cartTotalMad = 0,
   now = new Date()
 ) {
   const received = income
@@ -43,7 +43,7 @@ export function calcSafeToSpend(
     .filter((e) => e.status === "planned")
     .reduce((s, e) => s + toMad(e.amount, e.rate_to_mad), 0);
 
-  const available = received - actual - planned;
+  const available = received - actual - planned - Number(cartTotalMad || 0);
   const days = daysLeftInMonth(now);
 
   return {
