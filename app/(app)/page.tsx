@@ -8,13 +8,21 @@ import { formatMoney } from "@/lib/format";
 async function DashboardNumbers() {
   const supabase = await createClient();
 
-    const [{ data: income }, { data: expenses }] = await Promise.all([
-    supabase.from("income").select("amount, rate_to_mad, received_at"),
-    supabase.from("expenses").select("amount, rate_to_mad, status"),
-  ]);
+  const [{ data: income }, { data: expenses }, { data: cart }] =
+    await Promise.all([
+      supabase.from("income").select("amount, rate_to_mad, received_at"),
+      supabase.from("expenses").select("amount, rate_to_mad, status"),
+      supabase.from("cart_items").select("estimated_amount, rate_to_mad"),
+    ]);
+
+  const cartTotal = (cart ?? []).reduce(
+    (s, i) =>
+      s + Number(i.estimated_amount) * Number(i.rate_to_mad ?? 1),
+    0
+  );
 
   const balance = calcBalance(income ?? [], expenses ?? []);
-  const safe = calcSafeToSpend(income ?? [], expenses ?? []);
+  const safe = calcSafeToSpend(income ?? [], expenses ?? [], cartTotal);
 
   return (
     <>
