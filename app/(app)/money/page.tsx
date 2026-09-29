@@ -125,6 +125,15 @@ export default function MoneyPage() {
             Planned buys
           </p>
         </Link>
+                <Link
+          href="/money/recurring"
+          className="rounded-2xl border border-[hsl(var(--border))] bg-[hsl(var(--card))] p-4 text-left transition-all duration-200 hover:border-[hsl(var(--primary)/0.35)] hover:shadow-sm active:scale-[0.98]"
+        >
+          <p className="text-sm font-medium">Recurring</p>
+          <p className="mt-1 text-xs text-[hsl(var(--muted-foreground))]">
+            Rent · salary · bills
+          </p>
+        </Link>
       </section>
 
       <section>
