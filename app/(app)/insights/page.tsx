@@ -19,7 +19,10 @@ async function InsightsContent() {
   ]);
 
   const insights = calcInsights(expenses ?? [], income ?? []);
-  const review = buildWeeklyReview(expenses ?? [], income ?? []);
+  const base = buildWeeklyReview(expenses ?? [], income ?? []);
+  const { polishWeeklyReview } = await import("@/lib/calc/ai-review");
+  const lines = await polishWeeklyReview(base);
+  const review = { ...base, lines };
 
   return (
     <div className="space-y-6">
