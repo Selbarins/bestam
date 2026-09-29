@@ -97,7 +97,7 @@ export default function MoneyPage() {
         </p>
       </div>
 
-      <section className="grid grid-cols-2 gap-3">
+      <section className="grid grid-cols-2 gap-3 sm:grid-cols-3">
         <Link
           href="/money/income"
           className="rounded-2xl border border-[hsl(var(--border))] bg-[hsl(var(--card))] p-4 text-left transition-all duration-200 hover:border-[hsl(var(--primary)/0.35)] hover:shadow-sm active:scale-[0.98]"
@@ -114,6 +114,15 @@ export default function MoneyPage() {
           <p className="text-sm font-medium">Add expense</p>
           <p className="mt-1 text-xs text-[hsl(var(--muted-foreground))]">
             Fast capture
+          </p>
+        </Link>
+        <Link
+          href="/money/cart"
+          className="rounded-2xl border border-[hsl(var(--border))] bg-[hsl(var(--card))] p-4 text-left transition-all duration-200 hover:border-[hsl(var(--primary)/0.35)] hover:shadow-sm active:scale-[0.98] col-span-2 sm:col-span-1"
+        >
+          <p className="text-sm font-medium">Shopping cart</p>
+          <p className="mt-1 text-xs text-[hsl(var(--muted-foreground))]">
+            Planned buys
           </p>
         </Link>
       </section>
