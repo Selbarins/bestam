@@ -2,18 +2,29 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { parseExpenseText, matchCategory } from "@/lib/nl/parse-expense";
 
+function safeEqual(a: string, b: string): boolean {
+  if (a.length !== b.length) return false;
+  let out = 0;
+  for (let i = 0; i < a.length; i++) {
+    out |= a.charCodeAt(i) ^ b.charCodeAt(i);
+  }
+  return out === 0;
+}
+
 export async function POST(req: NextRequest) {
   const token = process.env.CAPTURE_TOKEN;
-  if (!token) {
+  const ownerId = process.env.OWNER_USER_ID;
+
+  if (!token || !ownerId) {
     return NextResponse.json(
-      { error: "CAPTURE_TOKEN not configured" },
+      { error: "Capture API not configured" },
       { status: 503 }
     );
   }
 
   const auth = req.headers.get("authorization") || "";
   const bearer = auth.startsWith("Bearer ") ? auth.slice(7) : "";
-  if (bearer !== token) {
+  if (!bearer || !safeEqual(bearer, token)) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
@@ -43,32 +54,25 @@ export async function POST(req: NextRequest) {
     note = parsed.note || note;
   }
 
-  if (!amount || amount <= 0) {
+  if (!Number.isFinite(amount) || amount <= 0) {
     return NextResponse.json({ error: "Invalid amount" }, { status: 400 });
   }
 
+  // Keep money to 2 decimal places (MAD)
+  amount = Math.round(amount * 100) / 100;
+
   const admin = createClient(url, serviceKey);
 
-  // optional category match
   if (!category_id && note) {
-    const { data: cats } = await admin
-      .from("categories")
-      .select("id, name");
+    const { data: cats } = await admin.from("categories").select("id, name");
     category_id = matchCategory(
       note.toLowerCase().split(/\s+/),
       cats ?? []
     );
   }
 
-  // single-user: attach to first user
-  const { data: users } = await admin.auth.admin.listUsers({ perPage: 1 });
-  const userId = users?.users?.[0]?.id;
-  if (!userId) {
-    return NextResponse.json({ error: "No user found" }, { status: 500 });
-  }
-
   const { error } = await admin.from("expenses").insert({
-    user_id: userId,
+    user_id: ownerId,
     amount,
     note,
     category_id,
