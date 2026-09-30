@@ -1,3 +1,5 @@
+import { toMad, roundMoney } from "./money";
+
 type IncomeRow = {
   amount: number | string;
   rate_to_mad?: number | string | null;
@@ -9,10 +11,6 @@ type ExpenseRow = {
   rate_to_mad?: number | string | null;
   status: "planned" | "actual";
 };
-
-function toMad(amount: number | string, rate?: number | string | null) {
-  return Number(amount) * Number(rate ?? 1);
-}
 
 function daysLeftInMonth(from = new Date()) {
   const year = from.getFullYear();
@@ -36,8 +34,9 @@ export type SafeToSpendResult = {
 };
 
 /**
- * Safe-to-Spend
+ * Safe-to-Spend v1
  * (received − actual − planned − cart − recurring − goal reserves) / days left
+ * Will be replaced by timeline-based v2 later.
  */
 export function calcSafeToSpend(
   income: IncomeRow[],
@@ -59,19 +58,24 @@ export function calcSafeToSpend(
     .filter((e) => e.status === "planned")
     .reduce((s, e) => s + toMad(e.amount, e.rate_to_mad), 0);
 
-  const cart = Number(cartTotalMad || 0);
-  const recurring = Number(recurringExpenseMad || 0);
-  const goalReserves = Number(goalReservesMad || 0);
+  const cart = roundMoney(Number(cartTotalMad) || 0);
+  const recurring = roundMoney(Number(recurringExpenseMad) || 0);
+  const goalReserves = roundMoney(Number(goalReservesMad) || 0);
 
-  const monthly =
-    received - actual - planned - cart - recurring - goalReserves;
+  const monthly = roundMoney(
+    received - actual - planned - cart - recurring - goalReserves
+  );
   const days = daysLeftInMonth(now);
 
   const freeRatio =
-    received > 0 ? Math.max(0, Math.min(1, monthly / received)) : monthly > 0 ? 1 : 0;
+    received > 0
+      ? Math.max(0, Math.min(1, monthly / received))
+      : monthly > 0
+        ? 1
+        : 0;
 
   return {
-    daily: monthly / days,
+    daily: roundMoney(monthly / days),
     monthly,
     daysLeft: days,
     received,
