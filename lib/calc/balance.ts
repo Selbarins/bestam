@@ -1,4 +1,4 @@
-import { toMad } from "./money";
+import { toMad, roundMoney } from "./money";
 
 type IncomeRow = {
   amount: number | string;
@@ -25,9 +25,5 @@ export function calcBalance(income: IncomeRow[], expenses: ExpenseRow[]) {
     .filter((e) => e.status === "actual")
     .reduce((sum, e) => sum + toMad(e.amount, e.rate_to_mad), 0);
 
-  return roundMoneySafe(totalIncome - totalExpenses);
-}
-
-function roundMoneySafe(value: number) {
-  return Math.round((value + Number.EPSILON) * 100) / 100;
+  return roundMoney(totalIncome - totalExpenses);
 }
