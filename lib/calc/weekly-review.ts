@@ -1,4 +1,5 @@
 import { formatMoney } from "@/lib/format";
+import { toMad } from "./money";
 
 type Expense = {
   amount: number | string;
@@ -13,10 +14,6 @@ type Income = {
   rate_to_mad?: number | string | null;
   received_at: string | null;
 };
-
-function toMad(amount: number | string, rate?: number | string | null) {
-  return Number(amount) * Number(rate ?? 1);
-}
 
 function categoryName(
   categories?: { name?: string } | { name?: string }[] | null
