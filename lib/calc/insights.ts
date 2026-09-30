@@ -1,3 +1,5 @@
+import { toMad, roundMoney } from "./money";
+
 type ExpenseRow = {
   amount: number | string;
   rate_to_mad?: number | string | null;
@@ -11,10 +13,6 @@ type IncomeRow = {
   rate_to_mad?: number | string | null;
   received_at: string | null;
 };
-
-function toMad(amount: number | string, rate?: number | string | null) {
-  return Number(amount) * Number(rate ?? 1);
-}
 
 function monthKey(d: Date) {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
@@ -55,7 +53,7 @@ export function calcInsights(
     );
   }
   const byCategory = [...byCategoryMap.entries()]
-    .map(([name, value]) => ({ name, value: Math.round(value * 100) / 100 }))
+    .map(([name, value]) => ({ name, value: roundMoney(value) }))
     .sort((a, b) => b.value - a.value);
 
   const monthlyMap = new Map<string, number>();
@@ -75,13 +73,13 @@ export function calcInsights(
   const monthly = [...monthlyMap.entries()].map(([month, value]) => ({
     month,
     label: new Date(month + "-01").toLocaleDateString("en", { month: "short" }),
-    value: Math.round(value * 100) / 100,
+    value: roundMoney(value),
   }));
 
   return {
-    spentThisMonth,
-    incomeThisMonth,
-    netThisMonth: incomeThisMonth - spentThisMonth,
+    spentThisMonth: roundMoney(spentThisMonth),
+    incomeThisMonth: roundMoney(incomeThisMonth),
+    netThisMonth: roundMoney(incomeThisMonth - spentThisMonth),
     byCategory,
     monthly,
   };
