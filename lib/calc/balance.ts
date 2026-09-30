@@ -1,3 +1,5 @@
+import { toMad } from "./money";
+
 type IncomeRow = {
   amount: number | string;
   rate_to_mad?: number | string | null;
@@ -9,10 +11,6 @@ type ExpenseRow = {
   rate_to_mad?: number | string | null;
   status: "planned" | "actual";
 };
-
-function toMad(amount: number | string, rate?: number | string | null) {
-  return Number(amount) * Number(rate ?? 1);
-}
 
 /**
  * Simple current balance:
@@ -27,5 +25,9 @@ export function calcBalance(income: IncomeRow[], expenses: ExpenseRow[]) {
     .filter((e) => e.status === "actual")
     .reduce((sum, e) => sum + toMad(e.amount, e.rate_to_mad), 0);
 
-  return totalIncome - totalExpenses;
+  return roundMoneySafe(totalIncome - totalExpenses);
+}
+
+function roundMoneySafe(value: number) {
+  return Math.round((value + Number.EPSILON) * 100) / 100;
 }
