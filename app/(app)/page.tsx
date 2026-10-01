@@ -6,6 +6,7 @@ import { ProgressRing } from "@/components/shared/ProgressRing";
 import { loadSafeToSpendV2 } from "@/features/money/safe-to-spend-data";
 import { ReconcileForm } from "@/features/accounts/components/ReconcileForm";
 import { UndoButtons } from "@/features/money/components/UndoButtons";
+import { AffordForm } from "@/features/money/components/AffordForm";
 
 async function DashboardNumbers() {
   const data = await loadSafeToSpendV2();
@@ -148,6 +149,14 @@ async function DashboardNumbers() {
           </ul>
         </section>
       )}
+
+      <section className="rounded-2xl border border-[hsl(var(--border))] bg-[hsl(var(--card))] p-5 shadow-sm">
+        <h2 className="text-sm font-medium">Can I afford this?</h2>
+        <p className="mt-1 mb-4 text-xs text-[hsl(var(--muted-foreground))]">
+          Inject a purchase into the timeline and see the impact before you buy.
+        </p>
+        <AffordForm />
+      </section>
 
       <section className="rounded-2xl border border-[hsl(var(--border))] bg-[hsl(var(--card))] p-5 shadow-sm">
         <h2 className="text-sm font-medium">Reconcile</h2>
