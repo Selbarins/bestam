@@ -16,7 +16,19 @@ type Category = {
   bucket: string;
 };
 
-export function ExpenseForm({ categories }: { categories: Category[] }) {
+type AccountOption = {
+  id: string;
+  name: string;
+  type: string;
+};
+
+export function ExpenseForm({
+  categories,
+  accounts = [],
+}: {
+  categories: Category[];
+  accounts?: AccountOption[];
+}) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
@@ -24,6 +36,9 @@ export function ExpenseForm({ categories }: { categories: Category[] }) {
   const [amount, setAmount] = useState("");
   const [note, setNote] = useState("");
   const [categoryId, setCategoryId] = useState("");
+  const [accountId, setAccountId] = useState(
+    () => accounts.find((a) => a.type === "bank")?.id ?? accounts[0]?.id ?? ""
+  );
   const [queued, setQueued] = useState(0);
   const [offline, setOffline] = useState(false);
 
@@ -79,6 +94,7 @@ export function ExpenseForm({ categories }: { categories: Category[] }) {
     const amt = Number(formData.get("amount"));
     const cat = String(formData.get("category_id") || "") || null;
     const n = String(formData.get("note") || "").trim() || null;
+    const acc = String(formData.get("account_id") || "") || null;
 
     if (!navigator.onLine) {
       enqueueExpense({ amount: amt, category_id: cat, note: n });
@@ -87,6 +103,9 @@ export function ExpenseForm({ categories }: { categories: Category[] }) {
       router.push("/");
       return;
     }
+
+    // Ensure account_id is in the FormData the server action reads
+    if (acc) formData.set("account_id", acc);
 
     startTransition(async () => {
       const result = await createExpense(formData);
@@ -148,6 +167,36 @@ export function ExpenseForm({ categories }: { categories: Category[] }) {
           </span>
         </div>
       </div>
+
+      {accounts.length > 0 && (
+        <div>
+          <p className="mb-3 text-sm font-medium text-[hsl(var(--muted-foreground))]">
+            Account
+          </p>
+          <div className="flex flex-wrap gap-2">
+            {accounts.map((a) => (
+              <label
+                key={a.id}
+                className={`cursor-pointer rounded-xl border px-3 py-2 text-sm transition-all duration-150 ${
+                  accountId === a.id
+                    ? "border-[hsl(var(--primary))] bg-[hsl(var(--accent))] shadow-sm"
+                    : "border-[hsl(var(--border))] bg-[hsl(var(--card))] hover:border-[hsl(var(--primary)/0.4)]"
+                }`}
+              >
+                <input
+                  type="radio"
+                  name="account_id"
+                  value={a.id}
+                  checked={accountId === a.id}
+                  onChange={() => setAccountId(a.id)}
+                  className="sr-only"
+                />
+                <span className="font-medium">{a.name}</span>
+              </label>
+            ))}
+          </div>
+        </div>
+      )}
 
       <div>
         <p className="mb-3 text-sm font-medium text-[hsl(var(--muted-foreground))]">
