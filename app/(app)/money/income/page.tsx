@@ -6,7 +6,7 @@ export default function IncomePage() {
     <div className="space-y-8">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="font-serif text-3xl tracking-tight">Add income</h1>
+          <h1 className="text-3xl font-semibold tracking-tight">Add income</h1>
           <p className="mt-1 text-sm text-[hsl(var(--muted-foreground))]">
             Salary or other money received
           </p>
