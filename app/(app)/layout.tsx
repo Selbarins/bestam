@@ -8,7 +8,7 @@ export default function AppLayout({
 }) {
   return (
     <div className="min-h-screen bg-[hsl(var(--background))] pb-24">
-      <main className="mx-auto max-w-lg px-4 pt-6">{children}</main>
+      <main className="mx-auto max-w-lg px-4 pt-4 pb-2">{children}</main>
       <Suspense fallback={null}>
         <BottomNav />
       </Suspense>
