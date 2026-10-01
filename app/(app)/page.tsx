@@ -3,7 +3,6 @@ import Link from "next/link";
 import { calcBalance } from "@/lib/calc/balance";
 import { calcRunway } from "@/lib/calc/runway";
 import { formatMoney } from "@/lib/format";
-import { ProgressRing } from "@/components/shared/ProgressRing";
 import { loadSafeToSpendV2 } from "@/features/money/safe-to-spend-data";
 import { ReconcileForm } from "@/features/accounts/components/ReconcileForm";
 import { UndoButtons } from "@/features/money/components/UndoButtons";
@@ -11,6 +10,7 @@ import { AffordForm } from "@/features/money/components/AffordForm";
 import { ExplainTimeline } from "@/features/money/components/ExplainTimeline";
 import { getExpensesWithBucket } from "@/features/money/expenses-with-bucket";
 import { calcSpendingPace } from "@/lib/calc/pace";
+import { WalletHero } from "@/features/money/components/WalletHero";
 
 async function DashboardNumbers() {
   const data = await loadSafeToSpendV2();
@@ -60,48 +60,14 @@ async function DashboardNumbers() {
     .filter((p) => p.events.length > 0)
     .slice(0, 5);
 
-  const freeRatio =
-    safe.startBalance > 0
-      ? Math.max(
-          0,
-          Math.min(1, Math.max(0, safe.discretionary) / safe.startBalance)
-        )
-      : safe.daily > 0
-        ? 1
-        : 0;
-
   return (
     <>
-      {/* Hero */}
-      <header className="flex flex-col items-center pt-2">
-        <ProgressRing value={freeRatio} size={220} stroke={11}>
-          <p className="text-xs font-medium tracking-wide text-[hsl(var(--muted-foreground))]">
-            Safe today
-          </p>
-          <p
-            className={`mt-1 text-3xl font-semibold tracking-tight tabular-nums ${
-              safe.daily <= 0
-                ? "text-red-600"
-                : "text-[hsl(var(--foreground))]"
-            }`}
-          >
-            {formatMoney(safe.daily)}
-          </p>
-          <p className="mt-1 text-[11px] text-[hsl(var(--muted-foreground))]">
-            {safe.daysLeft}d left in cycle
-          </p>
-        </ProgressRing>
-        <p className="mt-2 text-center text-[11px] text-[hsl(var(--muted-foreground))]">
-          Lowest {formatMoney(safe.lowestBalance)}
-          {safe.lowestDate ? ` on ${safe.lowestDate}` : ""}
-          {safe.safetyBuffer > 0
-            ? ` · buffer ${formatMoney(safe.safetyBuffer)}`
-            : ""}
-        </p>
-        <p className="text-center text-[11px] text-[hsl(var(--muted-foreground))]">
-          Cycle {cycle.cycleStart} → {cycle.cycleEnd}
-        </p>
-      </header>
+      {/* Wallet hero */}
+<WalletHero
+  safe={safe}
+  cycleStart={cycle.cycleStart}
+  cycleEnd={cycle.cycleEnd}
+/>
 
       {/* Book balance + accounts */}
       <section className="rounded-2xl border border-[hsl(var(--border))] bg-[hsl(var(--card))] p-5 shadow-sm">
