@@ -41,6 +41,7 @@ export async function POST(req: NextRequest) {
   let amount = Number(body.amount);
   let note = body.note ? String(body.note) : null;
   let category_id = body.category_id ? String(body.category_id) : null;
+  let account_id = body.account_id ? String(body.account_id) : null;
 
   if (body.text) {
     const parsed = parseExpenseText(String(body.text));
@@ -58,7 +59,6 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Invalid amount" }, { status: 400 });
   }
 
-  // Keep money to 2 decimal places (MAD)
   amount = Math.round(amount * 100) / 100;
 
   const admin = createClient(url, serviceKey);
@@ -71,11 +71,24 @@ export async function POST(req: NextRequest) {
     );
   }
 
+  // Default to Bank account for this owner
+  if (!account_id) {
+    const { data: bank } = await admin
+      .from("accounts")
+      .select("id")
+      .eq("user_id", ownerId)
+      .eq("type", "bank")
+      .limit(1)
+      .maybeSingle();
+    account_id = bank?.id ?? null;
+  }
+
   const { error } = await admin.from("expenses").insert({
     user_id: ownerId,
     amount,
     note,
     category_id,
+    account_id,
     status: "actual",
     currency: "MAD",
     rate_to_mad: 1,
@@ -85,5 +98,11 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 
-  return NextResponse.json({ success: true, amount, note, category_id });
+  return NextResponse.json({
+    success: true,
+    amount,
+    note,
+    category_id,
+    account_id,
+  });
 }
