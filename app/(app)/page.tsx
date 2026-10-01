@@ -9,6 +9,7 @@ import { ReconcileForm } from "@/features/accounts/components/ReconcileForm";
 import { UndoButtons } from "@/features/money/components/UndoButtons";
 import { AffordForm } from "@/features/money/components/AffordForm";
 import { ExplainTimeline } from "@/features/money/components/ExplainTimeline";
+import { getExpensesWithBucket } from "@/features/money/expenses-with-bucket";
 
 async function DashboardNumbers() {
   const data = await loadSafeToSpendV2();
@@ -31,7 +32,8 @@ async function DashboardNumbers() {
   }
 
   const overallBalance = calcBalance(income, expenses, adjustments);
-  const runway = calcRunway(safe.startBalance, expenses);
+  const expensesForRunway = await getExpensesWithBucket();
+  const runway = calcRunway(safe.startBalance, expensesForRunway);
 
   const upcoming = safe.timeline.points
     .filter((p) => p.events.length > 0)
@@ -164,28 +166,38 @@ async function DashboardNumbers() {
       )}
 
       {/* Runway */}
-      <section className="rounded-2xl border border-[hsl(var(--border))] bg-[hsl(var(--card))] p-5 shadow-sm">
+        <section className="rounded-2xl border border-[hsl(var(--border))] bg-[hsl(var(--card))] p-5 shadow-sm">
         <h2 className="text-sm font-medium">Runway</h2>
         <p className="mt-1 text-xs text-[hsl(var(--muted-foreground))]">
-          How long spendable cash lasts at recent pace (last{" "}
-          {runway.monthsOfHistory} months avg).
+          Months of spendable cash at recent pace (last{" "}
+          {runway.monthsOfHistory} months).
         </p>
         <dl className="mt-3 grid grid-cols-2 gap-3 text-sm">
           <div>
             <dt className="text-[hsl(var(--muted-foreground))]">
-              All spending
+              Essentials only
+            </dt>
+            <dd className="text-lg font-semibold tabular-nums">
+              {runway.essentialsMonths >= 99
+                ? "—"
+                : `${runway.essentialsMonths} mo`}
+            </dd>
+            <p className="text-[10px] text-[hsl(var(--muted-foreground))]">
+              avg {formatMoney(runway.avgEssentialsMonthly)}/mo
+            </p>
+          </div>
+          <div>
+            <dt className="text-[hsl(var(--muted-foreground))]">
+              Current lifestyle
             </dt>
             <dd className="text-lg font-semibold tabular-nums">
               {runway.lifestyleMonths >= 99
                 ? "—"
                 : `${runway.lifestyleMonths} mo`}
             </dd>
-          </div>
-          <div>
-            <dt className="text-[hsl(var(--muted-foreground))]">Avg / month</dt>
-            <dd className="text-lg font-semibold tabular-nums">
-              {formatMoney(runway.avgLifestyleMonthly)}
-            </dd>
+            <p className="text-[10px] text-[hsl(var(--muted-foreground))]">
+              avg {formatMoney(runway.avgLifestyleMonthly)}/mo
+            </p>
           </div>
         </dl>
       </section>
