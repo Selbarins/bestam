@@ -37,3 +37,12 @@ All tables use Row Level Security. Single-user app.
 ## Balance rule
 
 Per account (and overall for Safe-to-Spend accounts):
+
+Reconcile records one adjustment so `book_balance` equals the number you typed.
+
+## Conventions
+- Every table has `user_id` → `auth.users`
+- Amounts stored as `numeric(12,2)`
+- Always store `currency` (default `'MAD'`) + `rate_to_mad`
+- RLS: `auth.uid() = user_id` on all policies
+- Migrations live in `lib/supabase/migrations/` (ordered `001_…`, `002_…`, …)
