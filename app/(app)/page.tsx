@@ -6,6 +6,8 @@ import { calcSafeToSpend } from "@/lib/calc/safe-to-spend";
 import { formatMoney } from "@/lib/format";
 import { ProgressRing } from "@/components/shared/ProgressRing";
 import { getGoalReservesMad } from "@/features/goals/actions";
+import { getAccounts } from "@/features/accounts/queries";
+import { ReconcileForm } from "@/features/accounts/components/ReconcileForm";
 
 async function DashboardNumbers() {
   const supabase = await createClient();
@@ -15,16 +17,24 @@ async function DashboardNumbers() {
     { data: expenses },
     { data: cart },
     { data: recurring },
+    { data: adjustments },
+    accounts,
     goalReserves,
   ] = await Promise.all([
-    supabase.from("income").select("amount, rate_to_mad, received_at"),
-    supabase.from("expenses").select("amount, rate_to_mad, status"),
+    supabase
+      .from("income")
+      .select("amount, rate_to_mad, received_at, account_id"),
+    supabase
+      .from("expenses")
+      .select("amount, rate_to_mad, status, account_id"),
     supabase.from("cart_items").select("estimated_amount, rate_to_mad"),
     supabase
       .from("recurring_items")
       .select("amount, rate_to_mad, kind, active")
       .eq("active", true)
       .eq("kind", "expense"),
+    supabase.from("adjustments").select("amount, account_id"),
+    getAccounts(),
     getGoalReservesMad(),
   ]);
 
@@ -38,7 +48,22 @@ async function DashboardNumbers() {
     0
   );
 
-  const balance = calcBalance(income ?? [], expenses ?? []);
+  const balance = calcBalance(
+    income ?? [],
+    expenses ?? [],
+    adjustments ?? []
+  );
+
+  const bookByAccount: Record<string, number> = {};
+  for (const a of accounts) {
+    bookByAccount[a.id] = calcBalance(
+      income ?? [],
+      expenses ?? [],
+      adjustments ?? [],
+      { accountId: a.id, includeUnassigned: a.type === "bank" }
+    );
+  }
+
   const safe = calcSafeToSpend(
     income ?? [],
     expenses ?? [],
@@ -100,6 +125,24 @@ async function DashboardNumbers() {
           </p>
         </div>
 
+        {accounts.length > 0 && (
+          <ul className="mt-3 space-y-1 border-t border-[hsl(var(--border))] pt-3">
+            {accounts.map((a) => (
+              <li
+                key={a.id}
+                className="flex items-center justify-between text-sm"
+              >
+                <span className="text-[hsl(var(--muted-foreground))]">
+                  {a.name}
+                </span>
+                <span className="tabular-nums font-medium">
+                  {formatMoney(bookByAccount[a.id] ?? 0)}
+                </span>
+              </li>
+            ))}
+          </ul>
+        )}
+
         {breakdown.length > 1 && (
           <ul className="mt-4 space-y-2 border-t border-[hsl(var(--border))] pt-4">
             {breakdown.map((row) => (
@@ -134,6 +177,17 @@ async function DashboardNumbers() {
             </li>
           </ul>
         )}
+      </section>
+
+      <section className="rounded-2xl border border-[hsl(var(--border))] bg-[hsl(var(--card))] p-5 shadow-sm">
+        <h2 className="text-sm font-medium">Reconcile</h2>
+        <p className="mt-1 text-xs text-[hsl(var(--muted-foreground))]">
+          Type what the bank (or cash) actually shows. Bestam records the
+          difference.
+        </p>
+        <div className="mt-4">
+          <ReconcileForm accounts={accounts} bookByAccount={bookByAccount} />
+        </div>
       </section>
     </>
   );
