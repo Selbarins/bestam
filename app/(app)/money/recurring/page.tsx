@@ -7,19 +7,29 @@ import { RecurringRow } from "@/features/recurring/components/RecurringRow";
 
 async function RecurringContent() {
   const supabase = await createClient();
+  const period = `${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, "0")}-01`;
 
-  const [{ data: items }, { data: categories }] = await Promise.all([
-    supabase
-      .from("recurring_items")
-      .select(
-        "id, kind, name, amount, day_of_month, active, categories(name)"
-      )
-      .order("created_at", { ascending: false }),
-    supabase
-      .from("categories")
-      .select("id, name, bucket")
-      .order("sort_order"),
-  ]);
+  const [{ data: items }, { data: categories }, { data: occurrences }] =
+    await Promise.all([
+      supabase
+        .from("recurring_items")
+        .select(
+          "id, kind, name, amount, day_of_month, active, categories(name)"
+        )
+        .order("created_at", { ascending: false }),
+      supabase
+        .from("categories")
+        .select("id, name, bucket")
+        .order("sort_order"),
+      supabase
+        .from("recurring_occurrences")
+        .select("recurring_item_id, status")
+        .eq("period_month", period),
+    ]);
+
+  const statusByItem = new Map(
+    (occurrences ?? []).map((o) => [o.recurring_item_id, o.status as "paid" | "skipped"])
+  );
 
   const list = items ?? [];
   const activeExpenses = list
@@ -77,6 +87,7 @@ async function RecurringContent() {
               categoryName={
                 (item.categories as { name?: string } | null)?.name ?? null
               }
+              occurrenceStatus={statusByItem.get(item.id) ?? null}
             />
           ))}
         </div>
