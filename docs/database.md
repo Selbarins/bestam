@@ -37,6 +37,8 @@ All tables use Row Level Security. Single-user app.
 ## Balance rule
 
 Per account (and overall for Safe-to-Spend accounts):
+book_balance =
+sum(received income) − sum(actual expenses) + sum(adjustments)
 
 Reconcile records one adjustment so `book_balance` equals the number you typed.
 
