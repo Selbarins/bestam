@@ -10,6 +10,7 @@ import { UndoButtons } from "@/features/money/components/UndoButtons";
 import { AffordForm } from "@/features/money/components/AffordForm";
 import { ExplainTimeline } from "@/features/money/components/ExplainTimeline";
 import { getExpensesWithBucket } from "@/features/money/expenses-with-bucket";
+import { calcSpendingPace } from "@/lib/calc/pace";
 
 async function DashboardNumbers() {
   const data = await loadSafeToSpendV2();
@@ -34,6 +35,26 @@ async function DashboardNumbers() {
   const overallBalance = calcBalance(income, expenses, adjustments);
   const expensesForRunway = await getExpensesWithBucket();
   const runway = calcRunway(safe.startBalance, expensesForRunway);
+  const daysInCycle = cycle.payCycleDays;
+  const spentInCycle = expenses
+    .filter(
+      (e) =>
+        e.status === "actual" &&
+        e.spent_on &&
+        e.spent_on >= cycle.cycleStart &&
+        e.spent_on <= cycle.cycleEnd
+    )
+    .reduce(
+      (s, e) => s + Number(e.amount) * Number(e.rate_to_mad ?? 1),
+      0
+    );
+
+  const pace = calcSpendingPace({
+    spentInCycle,
+    dailySafe: safe.daily,
+    daysLeft: safe.daysLeft,
+    daysInCycle,
+  });
 
   const upcoming = safe.timeline.points
     .filter((p) => p.events.length > 0)
@@ -200,6 +221,56 @@ async function DashboardNumbers() {
             </p>
           </div>
         </dl>
+      </section>
+
+            <section className="rounded-2xl border border-[hsl(var(--border))] bg-[hsl(var(--card))] p-5 shadow-sm">
+        <h2 className="text-sm font-medium">Spending pace</h2>
+        <p className="mt-1 text-xs text-[hsl(var(--muted-foreground))]">
+          {pace.status === "ahead" &&
+            "You’re spending faster than the cycle clock."}
+          {pace.status === "under" &&
+            "You’re behind pace — room left if you need it."}
+          {pace.status === "on_track" && "Roughly on pace for this cycle."}
+        </p>
+        <dl className="mt-3 space-y-2 text-sm">
+          <div className="flex justify-between">
+            <dt className="text-[hsl(var(--muted-foreground))]">
+              Used of flexible
+            </dt>
+            <dd className="tabular-nums font-medium">
+              {Math.round(pace.usedRatio * 100)}%
+              <span className="text-[hsl(var(--muted-foreground))] font-normal">
+                {" "}
+                ({formatMoney(pace.spentInCycle)} /{" "}
+                {formatMoney(pace.flexibleBudget)})
+              </span>
+            </dd>
+          </div>
+          <div className="flex justify-between">
+            <dt className="text-[hsl(var(--muted-foreground))]">
+              Cycle elapsed
+            </dt>
+            <dd className="tabular-nums font-medium">
+              {Math.round(pace.timeElapsedRatio * 100)}%
+              <span className="text-[hsl(var(--muted-foreground))] font-normal">
+                {" "}
+                ({pace.daysElapsed} / {pace.daysInCycle}d)
+              </span>
+            </dd>
+          </div>
+        </dl>
+        <div className="mt-3 h-2 overflow-hidden rounded-full bg-[hsl(var(--muted))]">
+          <div
+            className={`h-full rounded-full transition-all ${
+              pace.status === "ahead"
+                ? "bg-amber-600"
+                : "bg-[hsl(var(--primary))]"
+            }`}
+            style={{
+              width: `${Math.min(100, Math.round(pace.usedRatio * 100))}%`,
+            }}
+          />
+        </div>
       </section>
 
       {/* Upcoming */}
