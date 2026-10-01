@@ -6,6 +6,7 @@ import { calcSafeToSpendV2 } from "@/lib/calc/safe-to-spend-v2";
 import { getAccounts } from "@/features/accounts/queries";
 import { getSettings } from "@/features/settings/queries";
 import { getGoalReservesMad } from "@/features/goals/actions";
+import { buildGoalEvents, detectGoalConflicts } from "@/lib/calc/goal-events";
 
 export async function loadSafeToSpendV2() {
   const supabase = await createClient();
@@ -18,9 +19,9 @@ export async function loadSafeToSpendV2() {
     { data: recurring },
     { data: occurrences },
     { data: adjustments },
+    { data: goals },
     accounts,
     settings,
-    goalReserves,
   ] = await Promise.all([
     supabase
       .from("income")
@@ -44,18 +45,13 @@ export async function loadSafeToSpendV2() {
       .select("recurring_item_id, status, period_month")
       .eq("period_month", period),
     supabase.from("adjustments").select("amount, account_id"),
+    supabase
+      .from("goals")
+      .select("id, type, name, target_amount, current_amount, target_date"),
     getAccounts(),
     getSettings(),
-    getGoalReservesMad(),
   ]);
 
-  // Book balance for accounts included in Safe-to-Spend
-  const spendableIds = new Set(
-    accounts.filter((a) => a.include_in_safe_to_spend).map((a) => a.id)
-  );
-
-  // Overall book for spendable: sum per spendable account
-  // Unassigned rows count toward bank (legacy)
   let startBalance = 0;
   for (const a of accounts) {
     if (!a.include_in_safe_to_spend) continue;
@@ -69,7 +65,6 @@ export async function loadSafeToSpendV2() {
       }
     );
   }
-  // If no accounts yet, fall back to simple total
   if (accounts.length === 0) {
     startBalance = calcBalance(
       income ?? [],
@@ -89,15 +84,20 @@ export async function loadSafeToSpendV2() {
     settings.pay_cycle_days
   );
 
-  const events = buildTimelineEvents({
+  const goalEvents = buildGoalEvents(goals ?? [], cycle.cycleEnd);
+  const conflicts = detectGoalConflicts(goalEvents, startBalance);
+
+  const baseEvents = buildTimelineEvents({
     income: income ?? [],
     expenses: expenses ?? [],
     recurring: recurring ?? [],
     occurrences: occurrences ?? [],
     cart: cart ?? [],
-    goalReservesMad: goalReserves,
+    goalReservesMad: 0, // goals come from buildGoalEvents now
     endDate: cycle.cycleEnd,
   });
+
+  const events = [...baseEvents, ...goalEvents];
 
   const safe = calcSafeToSpendV2({
     startBalance,
@@ -116,6 +116,7 @@ export async function loadSafeToSpendV2() {
     income: income ?? [],
     expenses: expenses ?? [],
     adjustments: adjustments ?? [],
-    spendableIds,
+    goals: goals ?? [],
+    conflicts,
   };
 }
