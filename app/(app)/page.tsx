@@ -1,134 +1,51 @@
 import { Suspense } from "react";
 import Link from "next/link";
-import { createClient } from "@/lib/supabase/server";
 import { calcBalance } from "@/lib/calc/balance";
-import { calcSafeToSpend } from "@/lib/calc/safe-to-spend";
-import { calcPayCycle } from "@/lib/calc/pay-cycle";
 import { formatMoney } from "@/lib/format";
 import { ProgressRing } from "@/components/shared/ProgressRing";
-import { getGoalReservesMad } from "@/features/goals/actions";
-import { getAccounts } from "@/features/accounts/queries";
-import { getSettings } from "@/features/settings/queries";
-import { getUnpaidRecurringExpenseMad } from "@/features/recurring/unpaid";
+import { loadSafeToSpendV2 } from "@/features/money/safe-to-spend-data";
 import { ReconcileForm } from "@/features/accounts/components/ReconcileForm";
 import { UndoButtons } from "@/features/money/components/UndoButtons";
 
 async function DashboardNumbers() {
-  const supabase = await createClient();
-
-  const [
-    { data: income },
-    { data: expenses },
-    { data: cart },
-    { data: adjustments },
-    accounts,
-    settings,
-    unpaidRecurring,
-    goalReserves,
-  ] = await Promise.all([
-    supabase
-      .from("income")
-      .select("amount, rate_to_mad, received_at, account_id, is_salary"),
-    supabase
-      .from("expenses")
-      .select("amount, rate_to_mad, status, account_id"),
-    supabase.from("cart_items").select("estimated_amount, rate_to_mad"),
-    supabase.from("adjustments").select("amount, account_id"),
-    getAccounts(),
-    getSettings(),
-    getUnpaidRecurringExpenseMad(),
-    getGoalReservesMad(),
-  ]);
-
-  const cartTotal = (cart ?? []).reduce(
-    (s, i) => s + Number(i.estimated_amount) * Number(i.rate_to_mad ?? 1),
-    0
-  );
-
-  // Last received salary drives the pay cycle
-  const lastSalary = (income ?? [])
-    .filter((i) => i.received_at && i.is_salary)
-    .sort((a, b) =>
-      String(b.received_at).localeCompare(String(a.received_at))
-    )[0];
-
-  const cycle = calcPayCycle(
-    lastSalary?.received_at ?? null,
-    settings.pay_cycle_days
-  );
-
-  const balance = calcBalance(
-    income ?? [],
-    expenses ?? [],
-    adjustments ?? []
-  );
+  const data = await loadSafeToSpendV2();
+  const { safe, cycle, accounts, income, expenses, adjustments } = data;
 
   const bookByAccount: Record<string, number> = {};
   for (const a of accounts) {
-    bookByAccount[a.id] = calcBalance(
-      income ?? [],
-      expenses ?? [],
-      adjustments ?? [],
-      { accountId: a.id, includeUnassigned: a.type === "bank" }
-    );
+    bookByAccount[a.id] = calcBalance(income, expenses, adjustments, {
+      accountId: a.id,
+      includeUnassigned: a.type === "bank",
+    });
   }
 
-  const safe = calcSafeToSpend(income ?? [], expenses ?? [], {
-    cartTotalMad: cartTotal,
-    unpaidRecurringMad: unpaidRecurring,
-    goalReservesMad: goalReserves,
-    safetyBufferMad: settings.safety_buffer,
-    daysLeft: cycle.daysLeft,
-  });
+  const overallBalance = calcBalance(income, expenses, adjustments);
 
-  const breakdown = [
-    { label: "Received", amount: safe.received, tone: "plus" as const },
-    { label: "Spent", amount: safe.actual, tone: "minus" as const },
-    ...(safe.planned > 0
-      ? [{ label: "Planned", amount: safe.planned, tone: "minus" as const }]
-      : []),
-    ...(safe.cart > 0
-      ? [{ label: "Cart", amount: safe.cart, tone: "minus" as const }]
-      : []),
-    ...(safe.recurring > 0
-      ? [
-          {
-            label: "Unpaid bills",
-            amount: safe.recurring,
-            tone: "minus" as const,
-          },
-        ]
-      : []),
-    ...(safe.goalReserves > 0
-      ? [
-          {
-            label: "Goal set-aside",
-            amount: safe.goalReserves,
-            tone: "minus" as const,
-          },
-        ]
-      : []),
-    ...(safe.safetyBuffer > 0
-      ? [
-          {
-            label: "Safety buffer",
-            amount: safe.safetyBuffer,
-            tone: "minus" as const,
-          },
-        ]
-      : []),
-  ];
+  // Upcoming commitments from timeline (next few non-zero event days)
+  const upcoming = safe.timeline.points
+    .filter((p) => p.events.length > 0)
+    .slice(0, 5);
+
+  const freeRatio =
+    safe.startBalance > 0
+      ? Math.max(
+          0,
+          Math.min(1, Math.max(0, safe.discretionary) / safe.startBalance)
+        )
+      : safe.daily > 0
+        ? 1
+        : 0;
 
   return (
     <>
       <header className="flex flex-col items-center pt-2">
-        <ProgressRing value={safe.freeRatio} size={220} stroke={11}>
+        <ProgressRing value={freeRatio} size={220} stroke={11}>
           <p className="text-xs font-medium tracking-wide text-[hsl(var(--muted-foreground))]">
             Safe today
           </p>
           <p
             className={`mt-1 text-3xl font-semibold tracking-tight tabular-nums ${
-              safe.daily < 0
+              safe.daily <= 0
                 ? "text-red-600"
                 : "text-[hsl(var(--foreground))]"
             }`}
@@ -136,26 +53,33 @@ async function DashboardNumbers() {
             {formatMoney(safe.daily)}
           </p>
           <p className="mt-1 text-[11px] text-[hsl(var(--muted-foreground))]">
-            {safe.daysLeft}d left in cycle · {formatMoney(safe.monthly)} free
+            {safe.daysLeft}d left in cycle
           </p>
         </ProgressRing>
         <p className="mt-2 text-center text-[11px] text-[hsl(var(--muted-foreground))]">
+          Lowest {formatMoney(safe.lowestBalance)}
+          {safe.lowestDate ? ` on ${safe.lowestDate}` : ""}
+          {safe.safetyBuffer > 0
+            ? ` · buffer ${formatMoney(safe.safetyBuffer)}`
+            : ""}
+        </p>
+        <p className="text-center text-[11px] text-[hsl(var(--muted-foreground))]">
           Cycle {cycle.cycleStart} → {cycle.cycleEnd}
-          {cycle.lastSalaryDate
-            ? ` · last salary ${cycle.lastSalaryDate}`
-            : " · no salary logged yet"}
         </p>
       </header>
 
       <section className="rounded-2xl border border-[hsl(var(--border))] bg-[hsl(var(--card))] p-5 shadow-sm">
         <div className="flex items-baseline justify-between">
           <p className="text-sm text-[hsl(var(--muted-foreground))]">
-            Current balance
+            Book balance
           </p>
           <p className="text-2xl font-semibold tracking-tight tabular-nums">
-            {formatMoney(balance)}
+            {formatMoney(overallBalance)}
           </p>
         </div>
+        <p className="mt-1 text-xs text-[hsl(var(--muted-foreground))]">
+          Spendable start for timeline: {formatMoney(safe.startBalance)}
+        </p>
 
         {accounts.length > 0 && (
           <ul className="mt-3 space-y-1 border-t border-[hsl(var(--border))] pt-3">
@@ -166,6 +90,9 @@ async function DashboardNumbers() {
               >
                 <span className="text-[hsl(var(--muted-foreground))]">
                   {a.name}
+                  {!a.include_in_safe_to_spend && (
+                    <span className="ml-1 text-[10px]">(excluded)</span>
+                  )}
                 </span>
                 <span className="tabular-nums font-medium">
                   {formatMoney(bookByAccount[a.id] ?? 0)}
@@ -175,47 +102,57 @@ async function DashboardNumbers() {
           </ul>
         )}
 
-        {breakdown.length > 1 && (
-          <ul className="mt-4 space-y-2 border-t border-[hsl(var(--border))] pt-4">
-            {breakdown.map((row) => (
-              <li
-                key={row.label}
-                className="flex items-center justify-between text-sm"
-              >
-                <span className="text-[hsl(var(--muted-foreground))]">
-                  {row.label}
-                </span>
-                <span
-                  className={`tabular-nums font-medium ${
-                    row.tone === "plus"
-                      ? "text-[hsl(var(--primary))]"
-                      : "text-[hsl(var(--foreground))]"
-                  }`}
-                >
-                  {row.tone === "plus" ? "+" : "−"}
-                  {formatMoney(row.amount)}
-                </span>
+        <ul className="mt-4 space-y-2 border-t border-[hsl(var(--border))] pt-4 text-sm">
+          <li className="flex justify-between">
+            <span className="text-[hsl(var(--muted-foreground))]">
+              Lowest projected
+            </span>
+            <span className="tabular-nums font-medium">
+              {formatMoney(safe.lowestBalance)}
+            </span>
+          </li>
+          <li className="flex justify-between">
+            <span className="text-[hsl(var(--muted-foreground))]">
+              After buffer
+            </span>
+            <span className="tabular-nums font-medium">
+              {formatMoney(safe.discretionary)}
+            </span>
+          </li>
+          <li className="flex justify-between font-medium">
+            <span>Per day</span>
+            <span className="tabular-nums">{formatMoney(safe.daily)}</span>
+          </li>
+        </ul>
+      </section>
+
+      {upcoming.length > 0 && (
+        <section className="rounded-2xl border border-[hsl(var(--border))] bg-[hsl(var(--card))] p-5 shadow-sm">
+          <h2 className="text-sm font-medium">Upcoming</h2>
+          <ul className="mt-3 space-y-2">
+            {upcoming.map((p) => (
+              <li key={p.date} className="text-sm">
+                <div className="flex justify-between">
+                  <span className="text-[hsl(var(--muted-foreground))]">
+                    {p.date}
+                  </span>
+                  <span className="tabular-nums font-medium">
+                    {formatMoney(p.balance)}
+                  </span>
+                </div>
+                <p className="text-xs text-[hsl(var(--muted-foreground))]">
+                  {p.events.map((e) => e.label).join(" · ")}
+                </p>
               </li>
             ))}
-            <li className="flex items-center justify-between border-t border-[hsl(var(--border))] pt-2 text-sm font-medium">
-              <span>Available this cycle</span>
-              <span
-                className={`tabular-nums ${
-                  safe.monthly < 0 ? "text-red-600" : ""
-                }`}
-              >
-                {formatMoney(safe.monthly)}
-              </span>
-            </li>
           </ul>
-        )}
-      </section>
+        </section>
+      )}
 
       <section className="rounded-2xl border border-[hsl(var(--border))] bg-[hsl(var(--card))] p-5 shadow-sm">
         <h2 className="text-sm font-medium">Reconcile</h2>
         <p className="mt-1 text-xs text-[hsl(var(--muted-foreground))]">
-          Type what the bank (or cash) actually shows. Bestam records the
-          difference.
+          Type what the bank (or cash) actually shows.
         </p>
         <div className="mt-4">
           <ReconcileForm accounts={accounts} bookByAccount={bookByAccount} />
@@ -224,10 +161,9 @@ async function DashboardNumbers() {
 
       <section className="rounded-2xl border border-[hsl(var(--border))] bg-[hsl(var(--card))] p-5 shadow-sm">
         <h2 className="text-sm font-medium">Undo</h2>
-        <p className="mt-1 mb-3 text-xs text-[hsl(var(--muted-foreground))]">
-          One tap to remove the last expense or the last reconcile.
-        </p>
-        <UndoButtons />
+        <div className="mt-3">
+          <UndoButtons />
+        </div>
       </section>
     </>
   );
