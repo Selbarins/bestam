@@ -8,6 +8,7 @@ import { ProgressRing } from "@/components/shared/ProgressRing";
 import { getGoalReservesMad } from "@/features/goals/actions";
 import { getAccounts } from "@/features/accounts/queries";
 import { ReconcileForm } from "@/features/accounts/components/ReconcileForm";
+import { UndoButtons } from "@/features/money/components/UndoButtons";
 
 async function DashboardNumbers() {
   const supabase = await createClient();
@@ -188,6 +189,13 @@ async function DashboardNumbers() {
         <div className="mt-4">
           <ReconcileForm accounts={accounts} bookByAccount={bookByAccount} />
         </div>
+      </section>
+      <section className="rounded-2xl border border-[hsl(var(--border))] bg-[hsl(var(--card))] p-5 shadow-sm">
+        <h2 className="text-sm font-medium">Undo</h2>
+        <p className="mt-1 mb-3 text-xs text-[hsl(var(--muted-foreground))]">
+          One tap to remove the last expense or the last reconcile.
+        </p>
+        <UndoButtons />
       </section>
     </>
   );
