@@ -1,9 +1,13 @@
 "use client";
 
 import { useTransition } from "react";
-import { useRouter } from "next/navigation";
 import { formatMoney } from "@/lib/format";
-import { deleteRecurring, toggleRecurring } from "../actions";
+import {
+  toggleRecurring,
+  deleteRecurring,
+  markRecurringPaid,
+  markRecurringSkipped,
+} from "../actions";
 
 type Props = {
   id: string;
@@ -12,7 +16,8 @@ type Props = {
   amount: number;
   day_of_month: number;
   active: boolean;
-  categoryName?: string | null;
+  categoryName: string | null;
+  occurrenceStatus?: "paid" | "skipped" | null;
 };
 
 export function RecurringRow({
@@ -23,45 +28,34 @@ export function RecurringRow({
   day_of_month,
   active,
   categoryName,
+  occurrenceStatus = null,
 }: Props) {
-  const router = useRouter();
-  const [isPending, startTransition] = useTransition();
+  const [pending, startTransition] = useTransition();
 
-  function handleToggle() {
+  function run(fn: () => Promise<{ error?: string }>) {
     startTransition(async () => {
-      const result = await toggleRecurring(id, !active);
-      if (result?.error) alert(result.error);
-      else router.refresh();
-    });
-  }
-
-  function handleDelete() {
-    if (!confirm("Delete this recurring item?")) return;
-    startTransition(async () => {
-      const result = await deleteRecurring(id);
-      if (result?.error) alert(result.error);
-      else router.refresh();
+      await fn();
     });
   }
 
   return (
     <div
-      className={`rounded-2xl border border-[hsl(var(--border))] bg-[hsl(var(--card))] px-4 py-3.5 transition-all ${
-        isPending ? "opacity-50" : ""
-      } ${!active ? "opacity-60" : ""}`}
+      className={`rounded-2xl border border-[hsl(var(--border))] bg-[hsl(var(--card))] p-4 ${
+        !active ? "opacity-50" : ""
+      }`}
     >
       <div className="flex items-start justify-between gap-3">
-        <div className="min-w-0 flex-1">
-          <p className="truncate text-sm font-medium">{name}</p>
+        <div>
+          <p className="font-medium">{name}</p>
           <p className="mt-0.5 text-xs text-[hsl(var(--muted-foreground))]">
-            {kind === "income" ? "Income" : "Expense"}
+            {kind === "income" ? "Income" : "Bill"} · day {day_of_month}
             {categoryName ? ` · ${categoryName}` : ""}
-            {` · day ${day_of_month}`}
-            {!active ? " · paused" : ""}
+            {occurrenceStatus === "paid" && " · paid this month"}
+            {occurrenceStatus === "skipped" && " · skipped this month"}
           </p>
         </div>
         <p
-          className={`shrink-0 text-sm font-semibold tabular-nums ${
+          className={`text-sm font-semibold tabular-nums ${
             kind === "income" ? "text-[hsl(var(--primary))]" : ""
           }`}
         >
@@ -70,20 +64,40 @@ export function RecurringRow({
         </p>
       </div>
 
-      <div className="mt-3 flex gap-2">
+      <div className="mt-3 flex flex-wrap gap-2">
+        {active && !occurrenceStatus && (
+          <>
+            <button
+              type="button"
+              disabled={pending}
+              onClick={() => run(() => markRecurringPaid(id))}
+              className="rounded-lg border border-[hsl(var(--border))] px-2.5 py-1 text-xs active:scale-[0.98] disabled:opacity-60"
+            >
+              Mark paid
+            </button>
+            <button
+              type="button"
+              disabled={pending}
+              onClick={() => run(() => markRecurringSkipped(id))}
+              className="rounded-lg border border-[hsl(var(--border))] px-2.5 py-1 text-xs active:scale-[0.98] disabled:opacity-60"
+            >
+              Skip
+            </button>
+          </>
+        )}
         <button
           type="button"
-          onClick={handleToggle}
-          disabled={isPending}
-          className="flex-1 rounded-xl border border-[hsl(var(--border))] py-2 text-xs font-medium text-[hsl(var(--muted-foreground))] hover:bg-[hsl(var(--muted))] disabled:opacity-50"
+          disabled={pending}
+          onClick={() => run(() => toggleRecurring(id, !active))}
+          className="rounded-lg border border-[hsl(var(--border))] px-2.5 py-1 text-xs active:scale-[0.98] disabled:opacity-60"
         >
           {active ? "Pause" : "Resume"}
         </button>
         <button
           type="button"
-          onClick={handleDelete}
-          disabled={isPending}
-          className="rounded-xl border border-[hsl(var(--border))] px-3 py-2 text-xs text-[hsl(var(--muted-foreground))] hover:text-red-600 disabled:opacity-50"
+          disabled={pending}
+          onClick={() => run(() => deleteRecurring(id))}
+          className="rounded-lg border border-[hsl(var(--border))] px-2.5 py-1 text-xs text-red-600 active:scale-[0.98] disabled:opacity-60"
         >
           Delete
         </button>
