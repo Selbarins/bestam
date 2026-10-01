@@ -2,16 +2,29 @@ import { Suspense } from "react";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { ExpenseForm } from "@/features/expenses/components/ExpenseForm";
+import { getAccounts } from "@/features/accounts/queries";
 
 async function ExpensesContent() {
   const supabase = await createClient();
 
-  const { data: categories } = await supabase
-    .from("categories")
-    .select("id, name, bucket")
-    .order("sort_order");
+  const [{ data: categories }, accounts] = await Promise.all([
+    supabase
+      .from("categories")
+      .select("id, name, bucket")
+      .order("sort_order"),
+    getAccounts(),
+  ]);
 
-  return <ExpenseForm categories={categories ?? []} />;
+  return (
+    <ExpenseForm
+      categories={categories ?? []}
+      accounts={accounts.map((a) => ({
+        id: a.id,
+        name: a.name,
+        type: a.type,
+      }))}
+    />
+  );
 }
 
 function FormSkeleton() {
