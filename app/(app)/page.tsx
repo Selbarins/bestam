@@ -1,6 +1,7 @@
 import { Suspense } from "react";
 import Link from "next/link";
 import { calcBalance } from "@/lib/calc/balance";
+import { calcRunway } from "@/lib/calc/runway";
 import { formatMoney } from "@/lib/format";
 import { ProgressRing } from "@/components/shared/ProgressRing";
 import { loadSafeToSpendV2 } from "@/features/money/safe-to-spend-data";
@@ -11,7 +12,15 @@ import { ExplainTimeline } from "@/features/money/components/ExplainTimeline";
 
 async function DashboardNumbers() {
   const data = await loadSafeToSpendV2();
-  const { safe, cycle, accounts, income, expenses, adjustments } = data;
+  const {
+    safe,
+    cycle,
+    accounts,
+    income,
+    expenses,
+    adjustments,
+    conflicts = [],
+  } = data;
 
   const bookByAccount: Record<string, number> = {};
   for (const a of accounts) {
@@ -22,8 +31,8 @@ async function DashboardNumbers() {
   }
 
   const overallBalance = calcBalance(income, expenses, adjustments);
+  const runway = calcRunway(safe.startBalance, expenses);
 
-  // Upcoming commitments from timeline (next few non-zero event days)
   const upcoming = safe.timeline.points
     .filter((p) => p.events.length > 0)
     .slice(0, 5);
@@ -40,6 +49,7 @@ async function DashboardNumbers() {
 
   return (
     <>
+      {/* Hero */}
       <header className="flex flex-col items-center pt-2">
         <ProgressRing value={freeRatio} size={220} stroke={11}>
           <p className="text-xs font-medium tracking-wide text-[hsl(var(--muted-foreground))]">
@@ -70,6 +80,7 @@ async function DashboardNumbers() {
         </p>
       </header>
 
+      {/* Book balance + accounts */}
       <section className="rounded-2xl border border-[hsl(var(--border))] bg-[hsl(var(--card))] p-5 shadow-sm">
         <div className="flex items-baseline justify-between">
           <p className="text-sm text-[hsl(var(--muted-foreground))]">
@@ -128,6 +139,7 @@ async function DashboardNumbers() {
         </ul>
       </section>
 
+      {/* Explain */}
       <section className="rounded-2xl border border-[hsl(var(--border))] bg-[hsl(var(--card))] p-5 shadow-sm">
         <h2 className="text-sm font-medium">How Safe-to-Spend is built</h2>
         <p className="mt-1 mb-4 text-xs text-[hsl(var(--muted-foreground))]">
@@ -137,6 +149,48 @@ async function DashboardNumbers() {
         <ExplainTimeline safe={safe} compact />
       </section>
 
+      {/* Goal conflicts — only if any */}
+      {conflicts.length > 0 && (
+        <section className="rounded-2xl border border-amber-200 bg-amber-50/80 p-5 shadow-sm">
+          <h2 className="text-sm font-medium text-amber-900">Goal notes</h2>
+          <ul className="mt-2 space-y-1">
+            {conflicts.map((m) => (
+              <li key={m} className="text-sm text-amber-900/90">
+                {m}
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+
+      {/* Runway */}
+      <section className="rounded-2xl border border-[hsl(var(--border))] bg-[hsl(var(--card))] p-5 shadow-sm">
+        <h2 className="text-sm font-medium">Runway</h2>
+        <p className="mt-1 text-xs text-[hsl(var(--muted-foreground))]">
+          How long spendable cash lasts at recent pace (last{" "}
+          {runway.monthsOfHistory} months avg).
+        </p>
+        <dl className="mt-3 grid grid-cols-2 gap-3 text-sm">
+          <div>
+            <dt className="text-[hsl(var(--muted-foreground))]">
+              All spending
+            </dt>
+            <dd className="text-lg font-semibold tabular-nums">
+              {runway.lifestyleMonths >= 99
+                ? "—"
+                : `${runway.lifestyleMonths} mo`}
+            </dd>
+          </div>
+          <div>
+            <dt className="text-[hsl(var(--muted-foreground))]">Avg / month</dt>
+            <dd className="text-lg font-semibold tabular-nums">
+              {formatMoney(runway.avgLifestyleMonthly)}
+            </dd>
+          </div>
+        </dl>
+      </section>
+
+      {/* Upcoming */}
       {upcoming.length > 0 && (
         <section className="rounded-2xl border border-[hsl(var(--border))] bg-[hsl(var(--card))] p-5 shadow-sm">
           <h2 className="text-sm font-medium">Upcoming</h2>
@@ -160,6 +214,7 @@ async function DashboardNumbers() {
         </section>
       )}
 
+      {/* Can I afford */}
       <section className="rounded-2xl border border-[hsl(var(--border))] bg-[hsl(var(--card))] p-5 shadow-sm">
         <h2 className="text-sm font-medium">Can I afford this?</h2>
         <p className="mt-1 mb-4 text-xs text-[hsl(var(--muted-foreground))]">
@@ -168,6 +223,7 @@ async function DashboardNumbers() {
         <AffordForm />
       </section>
 
+      {/* Reconcile */}
       <section className="rounded-2xl border border-[hsl(var(--border))] bg-[hsl(var(--card))] p-5 shadow-sm">
         <h2 className="text-sm font-medium">Reconcile</h2>
         <p className="mt-1 text-xs text-[hsl(var(--muted-foreground))]">
@@ -178,6 +234,7 @@ async function DashboardNumbers() {
         </div>
       </section>
 
+      {/* Undo */}
       <section className="rounded-2xl border border-[hsl(var(--border))] bg-[hsl(var(--card))] p-5 shadow-sm">
         <h2 className="text-sm font-medium">Undo</h2>
         <div className="mt-3">
