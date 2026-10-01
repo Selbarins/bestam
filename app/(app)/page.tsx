@@ -3,10 +3,13 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { calcBalance } from "@/lib/calc/balance";
 import { calcSafeToSpend } from "@/lib/calc/safe-to-spend";
+import { calcPayCycle } from "@/lib/calc/pay-cycle";
 import { formatMoney } from "@/lib/format";
 import { ProgressRing } from "@/components/shared/ProgressRing";
 import { getGoalReservesMad } from "@/features/goals/actions";
 import { getAccounts } from "@/features/accounts/queries";
+import { getSettings } from "@/features/settings/queries";
+import { getUnpaidRecurringExpenseMad } from "@/features/recurring/unpaid";
 import { ReconcileForm } from "@/features/accounts/components/ReconcileForm";
 import { UndoButtons } from "@/features/money/components/UndoButtons";
 
@@ -17,25 +20,23 @@ async function DashboardNumbers() {
     { data: income },
     { data: expenses },
     { data: cart },
-    { data: recurring },
     { data: adjustments },
     accounts,
+    settings,
+    unpaidRecurring,
     goalReserves,
   ] = await Promise.all([
     supabase
       .from("income")
-      .select("amount, rate_to_mad, received_at, account_id"),
+      .select("amount, rate_to_mad, received_at, account_id, is_salary"),
     supabase
       .from("expenses")
       .select("amount, rate_to_mad, status, account_id"),
     supabase.from("cart_items").select("estimated_amount, rate_to_mad"),
-    supabase
-      .from("recurring_items")
-      .select("amount, rate_to_mad, kind, active")
-      .eq("active", true)
-      .eq("kind", "expense"),
     supabase.from("adjustments").select("amount, account_id"),
     getAccounts(),
+    getSettings(),
+    getUnpaidRecurringExpenseMad(),
     getGoalReservesMad(),
   ]);
 
@@ -44,9 +45,16 @@ async function DashboardNumbers() {
     0
   );
 
-  const recurringExpense = (recurring ?? []).reduce(
-    (s, i) => s + Number(i.amount) * Number(i.rate_to_mad ?? 1),
-    0
+  // Last received salary drives the pay cycle
+  const lastSalary = (income ?? [])
+    .filter((i) => i.received_at && i.is_salary)
+    .sort((a, b) =>
+      String(b.received_at).localeCompare(String(a.received_at))
+    )[0];
+
+  const cycle = calcPayCycle(
+    lastSalary?.received_at ?? null,
+    settings.pay_cycle_days
   );
 
   const balance = calcBalance(
@@ -65,13 +73,13 @@ async function DashboardNumbers() {
     );
   }
 
-  const safe = calcSafeToSpend(
-    income ?? [],
-    expenses ?? [],
-    cartTotal,
-    recurringExpense,
-    goalReserves
-  );
+  const safe = calcSafeToSpend(income ?? [], expenses ?? [], {
+    cartTotalMad: cartTotal,
+    unpaidRecurringMad: unpaidRecurring,
+    goalReservesMad: goalReserves,
+    safetyBufferMad: settings.safety_buffer,
+    daysLeft: cycle.daysLeft,
+  });
 
   const breakdown = [
     { label: "Received", amount: safe.received, tone: "plus" as const },
@@ -83,13 +91,28 @@ async function DashboardNumbers() {
       ? [{ label: "Cart", amount: safe.cart, tone: "minus" as const }]
       : []),
     ...(safe.recurring > 0
-      ? [{ label: "Bills", amount: safe.recurring, tone: "minus" as const }]
+      ? [
+          {
+            label: "Unpaid bills",
+            amount: safe.recurring,
+            tone: "minus" as const,
+          },
+        ]
       : []),
     ...(safe.goalReserves > 0
       ? [
           {
             label: "Goal set-aside",
             amount: safe.goalReserves,
+            tone: "minus" as const,
+          },
+        ]
+      : []),
+    ...(safe.safetyBuffer > 0
+      ? [
+          {
+            label: "Safety buffer",
+            amount: safe.safetyBuffer,
             tone: "minus" as const,
           },
         ]
@@ -105,15 +128,23 @@ async function DashboardNumbers() {
           </p>
           <p
             className={`mt-1 text-3xl font-semibold tracking-tight tabular-nums ${
-              safe.daily < 0 ? "text-red-600" : "text-[hsl(var(--foreground))]"
+              safe.daily < 0
+                ? "text-red-600"
+                : "text-[hsl(var(--foreground))]"
             }`}
           >
             {formatMoney(safe.daily)}
           </p>
           <p className="mt-1 text-[11px] text-[hsl(var(--muted-foreground))]">
-            {safe.daysLeft}d left · {formatMoney(safe.monthly)}/mo
+            {safe.daysLeft}d left in cycle · {formatMoney(safe.monthly)} free
           </p>
         </ProgressRing>
+        <p className="mt-2 text-center text-[11px] text-[hsl(var(--muted-foreground))]">
+          Cycle {cycle.cycleStart} → {cycle.cycleEnd}
+          {cycle.lastSalaryDate
+            ? ` · last salary ${cycle.lastSalaryDate}`
+            : " · no salary logged yet"}
+        </p>
       </header>
 
       <section className="rounded-2xl border border-[hsl(var(--border))] bg-[hsl(var(--card))] p-5 shadow-sm">
@@ -167,7 +198,7 @@ async function DashboardNumbers() {
               </li>
             ))}
             <li className="flex items-center justify-between border-t border-[hsl(var(--border))] pt-2 text-sm font-medium">
-              <span>Available this month</span>
+              <span>Available this cycle</span>
               <span
                 className={`tabular-nums ${
                   safe.monthly < 0 ? "text-red-600" : ""
@@ -190,6 +221,7 @@ async function DashboardNumbers() {
           <ReconcileForm accounts={accounts} bookByAccount={bookByAccount} />
         </div>
       </section>
+
       <section className="rounded-2xl border border-[hsl(var(--border))] bg-[hsl(var(--card))] p-5 shadow-sm">
         <h2 className="text-sm font-medium">Undo</h2>
         <p className="mt-1 mb-3 text-xs text-[hsl(var(--muted-foreground))]">
