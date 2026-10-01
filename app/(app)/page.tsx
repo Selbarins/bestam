@@ -7,6 +7,7 @@ import { loadSafeToSpendV2 } from "@/features/money/safe-to-spend-data";
 import { ReconcileForm } from "@/features/accounts/components/ReconcileForm";
 import { UndoButtons } from "@/features/money/components/UndoButtons";
 import { AffordForm } from "@/features/money/components/AffordForm";
+import { ExplainTimeline } from "@/features/money/components/ExplainTimeline";
 
 async function DashboardNumbers() {
   const data = await loadSafeToSpendV2();
@@ -125,6 +126,15 @@ async function DashboardNumbers() {
             <span className="tabular-nums">{formatMoney(safe.daily)}</span>
           </li>
         </ul>
+      </section>
+
+      <section className="rounded-2xl border border-[hsl(var(--border))] bg-[hsl(var(--card))] p-5 shadow-sm">
+        <h2 className="text-sm font-medium">How Safe-to-Spend is built</h2>
+        <p className="mt-1 mb-4 text-xs text-[hsl(var(--muted-foreground))]">
+          Start balance, then every future event until payday. The tightest day
+          minus your buffer, divided by days left.
+        </p>
+        <ExplainTimeline safe={safe} compact />
       </section>
 
       {upcoming.length > 0 && (
