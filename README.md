@@ -51,7 +51,7 @@ Not "Bad purchase." → "This moves your laptop goal by 12 days."
 
 ## 2. Current status
 
-_Snapshot of the repo as of 29 Sep 2026. Update this section as things ship._
+_Snapshot of the repo as of 01 Oct 2026. Update this section as things ship._
 
 | Area | Status |
 |---|---|
@@ -62,7 +62,7 @@ _Snapshot of the repo as of 29 Sep 2026. Update this section as things ship._
 | Edit/delete transactions | ✅ Done |
 | Goals (savings, emergency, cap) with projections | ✅ Done |
 | Shopping cart, recurring items | ✅ Done (v1) |
-| Safe-to-Spend | 🟡 **v1 only** (monthly formula, no buffer, no timeline) |
+| Safe-to-Spend | 🟡 **v2 timeline on home**  |
 | Charts, weekly review, NL capture, offline queue, iPhone capture API | 🟡 Built early, unhardened |
 | `forecast.ts`, `runway.ts` | ⬜ Empty stubs |
 | Automated tests | ⬜ None |
@@ -342,21 +342,18 @@ Ordered by **dependency and trust**, not by how impressive a feature sounds.
 
 > **Rule:** Do not build advanced intelligence on unreliable financial data.
 
-### Phase 0: Hygiene and trust foundation `P0` ← **next**
+### Phase 0: Hygiene and trust foundation `P0`
 
-- [ ] Disable public sign-ups in Supabase (dashboard), then delete sign-up UI
-- [ ] Remove template leftovers (see [Design cleanup](#cleanup-that-follows-from-this-decision))
-- [ ] Move migrations to `supabase/migrations/` (match docs) and keep them in order
-- [ ] Add Vitest and tests for every function in `lib/calc/`
-- [ ] Switch money math to integer minor units (or a decimal lib)
-- [ ] Move all financial sums out of `page.tsx` into `lib/calc/`
-- [ ] Fill or delete empty files (`queries.ts`, `types.ts`, `forecast.ts`, `runway.ts`)
-- [ ] Harden `/api/capture` (constant-time token compare, basic rate limit, no `listUsers` on every call: store the owner id in an env var)
-- [ ] Remove `.env.local` from history if it ever contained anything sensitive; rotate keys if a service-role key was ever exposed
+- [x] Disable public sign-ups in Supabase (dashboard), then delete sign-up UI
+- [x] Remove template leftovers
+- [ ] Move migrations to `supabase/migrations/` (currently `lib/supabase/migrations/`)
+- [x] Add Vitest and tests for core `lib/calc/` functions (expand over time)
+- [x] Money via `roundMoney` / `toMad` (centimes deferred by choice)
+- [x] Financial sums in `lib/calc/` / feature loaders
+- [x] Fill stubs (`runway.ts`, timeline, pace, etc.)
+- [x] Harden `/api/capture` (token + `OWNER_USER_ID`)
 - [ ] CSV export of all data (backup)
 - [ ] Error, loading, and empty states on every screen
-
-**Done when:** a calculation bug can't reach the UI unnoticed, and nobody else can create an account.
 
 ### Phase 1: Core tracking `P0`
 
@@ -364,53 +361,52 @@ Ordered by **dependency and trust**, not by how impressive a feature sounds.
 - [x] Expenses with planned/actual
 - [x] Categories (custom + seeded)
 - [x] Edit / delete
-- [ ] Undo last action
-- [ ] Accounts: Bank / Cash / Savings
-- [ ] **Reconcile balance** (adjustment transaction)
-- [ ] Split transactions (defer if it slows the core)
+- [x] Undo last expense / last reconcile
+- [x] Accounts: Bank / Cash / Savings
+- [x] Reconcile balance (adjustment transaction)
+- [ ] Split transactions (deferred)
 
 ### Phase 2: Planning engine `P0`
 
 - [x] Shopping cart (v1)
 - [x] Recurring items (v1)
-- [ ] Mark each recurring occurrence paid / skipped
-- [ ] Minimum safety buffer setting
-- [ ] Pay-cycle periods (payday to payday)
-- [ ] Sinking funds
-- [ ] Expected vs received income
+- [x] Mark each recurring occurrence paid / skipped
+- [x] Minimum safety buffer setting
+- [x] Pay-cycle periods (payday to payday, flexible ~28 days)
+- [ ] Sinking funds (paused)
+- [x] Expected income events on timeline (basic)
 
 ### Phase 3: Safe-to-Spend v2 `P0`
 
-- [ ] Timeline-based calculation in `lib/calc/safe-to-spend.ts`
-- [ ] "Explain this number" breakdown sheet
-- [ ] **Wallet home redesign** (see [Home screen](#home-screen-the-wallet)): wallet card, peeking accounts, hide-amounts toggle, quick spend chips, upcoming and latest rows, center capture button
+- [x] Timeline-based calculation (`lib/calc/timeline.ts`, `safe-to-spend-v2.ts`)
+- [x] "Explain this number" breakdown on home
+- [ ] **Wallet home redesign**
 - [ ] Today / until-payday toggle
-- [ ] Buffer protection and calm zero-state
-- [ ] Full test suite for edge cases (month boundaries, late income, negative balance, foreign currency)
-
-**Done when:** you trust the number enough to skip checking your bank app.
+- [x] Buffer protection (discretionary = lowest − buffer)
+- [x] Core tests (timeline, v2, events, pace) — expand edge cases
 
 ### Phase 4: Goals and stability `P1`
 
 - [x] Savings target, emergency fund, spending cap (v1)
-- [ ] Goals reserve money in the timeline
+- [x] Goals reserve money in the timeline
 - [ ] Deadline projection using real surplus
-- [ ] Runway (essentials vs lifestyle)
-- [ ] Priority ordering and conflict detection
+- [x] Runway (essentials vs lifestyle)
+- [x] Conflict detection (basic messages)
 
 ### Phase 5: Decision engine `P1`
 
-- [ ] Can I afford this?
-- [ ] Purchase impact preview
+- [x] Can I afford this?
+- [x] Purchase impact preview
 - [ ] What-if scenarios (sandbox, no writes)
-- [ ] Cart "planned" items reduce Safe-to-Spend
+- [x] Cart items on timeline (reduce STS)
 
 ### Phase 6: Cashflow and forecasting `P1`
 
-- [ ] Cashflow timeline screen
-- [ ] Lowest projected balance
-- [ ] Spending pace and monthly projection
-- [ ] Conservative vs expected projection (only with enough history)
+- [x] Cashflow on home (Upcoming + Explain)
+- [x] Lowest projected balance
+- [x] Spending pace
+- [ ] Dedicated cashflow screen
+- [ ] Conservative vs expected projection
 
 ### Phase 7: Insights `P2`
 
