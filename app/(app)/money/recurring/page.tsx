@@ -43,7 +43,7 @@ async function RecurringContent() {
     <div className="space-y-6">
       {(activeExpenses > 0 || activeIncome > 0) && (
         <div className="grid grid-cols-2 gap-3">
-          <div className="rounded-2xl border border-[hsl(var(--border))] bg-[hsl(var(--card))] p-4">
+            <div className="glass rounded-2xl p-4">
             <p className="text-xs text-[hsl(var(--muted-foreground))]">
               Monthly bills
             </p>
@@ -51,7 +51,7 @@ async function RecurringContent() {
               {formatMoney(activeExpenses)}
             </p>
           </div>
-          <div className="rounded-2xl border border-[hsl(var(--border))] bg-[hsl(var(--card))] p-4">
+          <div className="glass rounded-2xl p-4">
             <p className="text-xs text-[hsl(var(--muted-foreground))]">
               Monthly income
             </p>
@@ -65,7 +65,7 @@ async function RecurringContent() {
       <RecurringForm categories={categories ?? []} />
 
       {list.length === 0 ? (
-        <div className="rounded-2xl border border-dashed border-[hsl(var(--border))] px-5 py-10 text-center">
+          <div className="glass rounded-2xl px-5 py-10 text-center">
           <p className="text-sm text-[hsl(var(--muted-foreground))]">
             No recurring items
           </p>
@@ -111,17 +111,18 @@ function Skeleton() {
 
 export default function RecurringPage() {
   return (
-    <div className="space-y-8">
-      <div className="flex items-center justify-between">
+      return (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between gap-3">
         <div>
-          <h1 className="text-3xl font-semibold tracking-tight">Recurring</h1>
+          <h1 className="text-2xl font-semibold tracking-tight">Recurring</h1>
           <p className="mt-1 text-sm text-[hsl(var(--muted-foreground))]">
             Bills & salary
           </p>
         </div>
         <Link
           href="/money"
-          className="text-sm text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--foreground))]"
+          className="glass rounded-full px-3 py-1.5 text-xs font-medium"
         >
           Back
         </Link>
