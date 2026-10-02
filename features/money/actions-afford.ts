@@ -3,6 +3,7 @@
 import { loadSafeToSpendV2 } from "./safe-to-spend-data";
 import { calcSafeToSpendV2WithPurchase } from "@/lib/calc/safe-to-spend-v2";
 import { roundMoney } from "@/lib/calc/money";
+import { templateAffordCoach, polishAffordCoach } from "@/lib/calc/afford-coach";
 
 export type AffordResult = {
   amount: number;
