@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { formatMoney } from "@/lib/format";
+import { formatWhen } from "@/lib/format-time";
 import { deleteExpense, deleteIncome } from "../actions";
 import { EditTransactionSheet } from "./EditTransactionSheet";
 
@@ -11,6 +12,7 @@ type Props = {
   kind: "income" | "expense";
   title: string;
   amount: number;
+  /** Raw ISO or date string from DB — never pre-format */
   date: string;
   meta?: string;
 };
@@ -36,22 +38,19 @@ export function ActivityRow({ id, kind, title, amount, date, meta }: Props) {
   return (
     <>
       <div
-        className={`flex items-center justify-between rounded-2xl border border-[hsl(var(--border))] bg-[hsl(var(--card))] px-4 py-3.5 transition-all duration-200 hover:shadow-sm ${
+        className={`glass flex items-center justify-between rounded-2xl px-4 py-3 transition ${
           isPending ? "opacity-50" : ""
         }`}
       >
         <div className="min-w-0 flex-1">
           <p className="truncate text-sm font-medium">{title}</p>
           <p className="mt-0.5 text-xs text-[hsl(var(--muted-foreground))]">
-            {new Date(date).toLocaleDateString("fr-MA", {
-              day: "numeric",
-              month: "short",
-            })}
+            {formatWhen(date)}
             {meta ? ` · ${meta}` : ""}
           </p>
         </div>
 
-        <div className="ml-3 flex shrink-0 items-center gap-2">
+        <div className="ml-3 flex shrink-0 items-center gap-1.5">
           <p
             className={`text-sm font-semibold tabular-nums ${
               kind === "income"
@@ -65,7 +64,7 @@ export function ActivityRow({ id, kind, title, amount, date, meta }: Props) {
           <button
             type="button"
             onClick={() => setEditing(true)}
-            className="rounded-lg px-2 py-1 text-xs text-[hsl(var(--muted-foreground))] hover:bg-[hsl(var(--muted))]"
+            className="rounded-lg px-2 py-1 text-xs text-[hsl(var(--muted-foreground))] hover:bg-white/40"
           >
             Edit
           </button>
@@ -73,7 +72,7 @@ export function ActivityRow({ id, kind, title, amount, date, meta }: Props) {
             type="button"
             onClick={handleDelete}
             disabled={isPending}
-            className="rounded-lg px-2 py-1 text-xs text-[hsl(var(--muted-foreground))] hover:bg-[hsl(var(--muted))] hover:text-red-600 disabled:opacity-50"
+            className="rounded-lg px-2 py-1 text-xs text-[hsl(var(--muted-foreground))] hover:bg-white/40 hover:text-red-600 disabled:opacity-50"
           >
             Delete
           </button>
