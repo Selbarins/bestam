@@ -43,19 +43,19 @@ function FormSkeleton() {
 
 export default function ExpensesPage() {
   return (
-    <div className="space-y-8">
-      <div className="flex items-center justify-between">
+      <div className="space-y-6">
+      <div className="flex items-center justify-between gap-3">
         <div>
-          <h1 className="text-3xl font-semibold tracking-tight">Add expense</h1>
+          <h1 className="text-2xl font-semibold tracking-tight">Add expense</h1>
           <p className="mt-1 text-sm text-[hsl(var(--muted-foreground))]">
             Amount → category → done
           </p>
         </div>
         <Link
-          href="/"
-          className="text-sm text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--foreground))]"
+          href="/money"
+          className="glass rounded-full px-3 py-1.5 text-xs font-medium"
         >
-          Cancel
+          Back
         </Link>
       </div>
 
