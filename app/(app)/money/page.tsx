@@ -2,6 +2,7 @@ import { Suspense } from "react";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { ActivityRow } from "@/features/money/components/ActivityRow";
+import { formatWhen } from "@/lib/format-time";
 
 async function RecentActivity() {
   const supabase = await createClient();
@@ -34,7 +35,7 @@ async function RecentActivity() {
       kind: "income" as const,
       title: i.name,
       amount: Number(i.amount),
-      date: i.received_at ?? i.created_at,
+      date: i.created_at ?? i.received_at ?? "",
       meta: i.received_at ? "Received" : "Pending",
     })),
     ...(expenses ?? []).map((e) => ({
@@ -45,7 +46,7 @@ async function RecentActivity() {
         (e.categories as { name?: string } | null)?.name ||
         "Expense",
       amount: Number(e.amount),
-      date: e.spent_on || e.created_at,
+      date: e.created_at || e.spent_on || "",
       meta: e.status === "planned" ? "Planned" : undefined,
     })),
   ]
@@ -54,12 +55,9 @@ async function RecentActivity() {
 
   if (rows.length === 0) {
     return (
-      <div className="rounded-2xl border border-dashed border-[hsl(var(--border))] px-5 py-10 text-center">
+      <div className="glass rounded-2xl px-5 py-10 text-center">
         <p className="text-sm text-[hsl(var(--muted-foreground))]">
           No activity yet
-        </p>
-        <p className="mt-1 text-xs text-[hsl(var(--muted-foreground))]">
-          Add income or an expense to get started
         </p>
       </div>
     );
@@ -68,7 +66,11 @@ async function RecentActivity() {
   return (
     <div className="space-y-2">
       {rows.map((row) => (
-        <ActivityRow key={`${row.kind}-${row.id}`} {...row} />
+        <ActivityRow
+          key={`${row.kind}-${row.id}`}
+          {...row}
+          date={formatWhen(row.date)}
+        />
       ))}
     </div>
   );
@@ -78,10 +80,7 @@ function ActivitySkeleton() {
   return (
     <div className="space-y-2">
       {Array.from({ length: 4 }).map((_, i) => (
-        <div
-          key={i}
-          className="h-16 animate-pulse rounded-2xl bg-[hsl(var(--muted))]"
-        />
+        <div key={i} className="h-14 animate-pulse rounded-2xl bg-white/40" />
       ))}
     </div>
   );
@@ -89,57 +88,44 @@ function ActivitySkeleton() {
 
 export default function MoneyPage() {
   return (
-    <div className="space-y-8">
+    <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-semibold tracking-tight">Money</h1>
+        <h1 className="text-2xl font-semibold tracking-tight">Money</h1>
         <p className="mt-1 text-sm text-[hsl(var(--muted-foreground))]">
-          Income · Expenses · Activity
+          Activity · capture · plans
         </p>
       </div>
 
-      <section className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-        <Link
-          href="/money/income"
-          className="rounded-2xl border border-[hsl(var(--border))] bg-[hsl(var(--card))] p-4 text-left transition-all duration-200 hover:border-[hsl(var(--primary)/0.35)] hover:shadow-sm active:scale-[0.98]"
-        >
-          <p className="text-sm font-medium">Add income</p>
-          <p className="mt-1 text-xs text-[hsl(var(--muted-foreground))]">
-            Salary or other
-          </p>
-        </Link>
+      {/* Compact action row — not big cards */}
+      <div className="flex flex-wrap gap-2">
         <Link
           href="/money/expenses"
-          className="rounded-2xl border border-[hsl(var(--border))] bg-[hsl(var(--card))] p-4 text-left transition-all duration-200 hover:border-[hsl(var(--primary)/0.35)] hover:shadow-sm active:scale-[0.98]"
+          className="glass-btn rounded-full px-3.5 py-1.5 text-xs font-medium"
         >
-          <p className="text-sm font-medium">Add expense</p>
-          <p className="mt-1 text-xs text-[hsl(var(--muted-foreground))]">
-            Fast capture
-          </p>
+          Add expense
+        </Link>
+        <Link
+          href="/money/income"
+          className="glass rounded-full px-3.5 py-1.5 text-xs font-medium"
+        >
+          Add income
         </Link>
         <Link
           href="/money/cart"
-          className="rounded-2xl border border-[hsl(var(--border))] bg-[hsl(var(--card))] p-4 text-left transition-all duration-200 hover:border-[hsl(var(--primary)/0.35)] hover:shadow-sm active:scale-[0.98] col-span-2 sm:col-span-1"
+          className="glass rounded-full px-3.5 py-1.5 text-xs font-medium"
         >
-          <p className="text-sm font-medium">Shopping cart</p>
-          <p className="mt-1 text-xs text-[hsl(var(--muted-foreground))]">
-            Planned buys
-          </p>
+          Cart
         </Link>
-                <Link
+        <Link
           href="/money/recurring"
-          className="rounded-2xl border border-[hsl(var(--border))] bg-[hsl(var(--card))] p-4 text-left transition-all duration-200 hover:border-[hsl(var(--primary)/0.35)] hover:shadow-sm active:scale-[0.98]"
+          className="glass rounded-full px-3.5 py-1.5 text-xs font-medium"
         >
-          <p className="text-sm font-medium">Recurring</p>
-          <p className="mt-1 text-xs text-[hsl(var(--muted-foreground))]">
-            Rent · salary · bills
-          </p>
+          Recurring
         </Link>
-      </section>
+      </div>
 
-      <section>
-        <h2 className="mb-3 text-sm font-medium text-[hsl(var(--muted-foreground))]">
-          Recent activity
-        </h2>
+      <section className="glass rounded-2xl p-4">
+        <h2 className="mb-3 text-sm font-medium">Recent activity</h2>
         <Suspense fallback={<ActivitySkeleton />}>
           <RecentActivity />
         </Suspense>
