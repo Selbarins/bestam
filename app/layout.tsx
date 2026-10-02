@@ -1,23 +1,38 @@
-import { Suspense } from "react";
-import { BottomNav } from "@/components/layout/BottomNav";
+import type { Metadata, Viewport } from "next";
+import { DM_Sans } from "next/font/google";
+import "./globals.css";
 
-export default function AppLayout({
+const dmSans = DM_Sans({
+  subsets: ["latin"],
+  variable: "--font-sans",
+  display: "swap",
+});
+
+export const metadata: Metadata = {
+  title: "Bestam",
+  description: "Personal budget & financial stability",
+  manifest: "/manifest.webmanifest",
+};
+
+export const viewport: Viewport = {
+  themeColor: "#faf8f5",
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 1,
+};
+
+export default function RootLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
   return (
-    <div
-      className="min-h-screen pb-24"
-      style={{
-        background:
-          "radial-gradient(1200px 600px at 10% -10%, hsl(152 30% 90% / 0.55), transparent), radial-gradient(900px 500px at 100% 0%, hsl(40 40% 94% / 0.9), transparent), hsl(40 33% 98%)",
-      }}
-    >
-      <main className="mx-auto max-w-lg px-4 pt-6">{children}</main>
-      <Suspense fallback={null}>
-        <BottomNav />
-      </Suspense>
-    </div>
+    <html lang="en">
+      <body
+        className={`${dmSans.variable} font-sans antialiased bg-background text-foreground`}
+      >
+        {children}
+      </body>
+    </html>
   );
 }
