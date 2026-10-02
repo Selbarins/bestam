@@ -41,3 +41,39 @@ body {
   background-color: hsl(var(--primary) / 0.15);
   color: hsl(var(--foreground));
 }
+
+/* Glass surfaces — app-wide */
+.glass {
+  background: hsl(40 30% 99% / 0.55);
+  border: 1px solid hsl(0 0% 100% / 0.45);
+  box-shadow:
+    0 1px 0 hsl(0 0% 100% / 0.5) inset,
+    0 12px 40px -16px hsl(30 10% 12% / 0.18);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+}
+
+.glass-strong {
+  background: hsl(40 30% 99% / 0.72);
+  border: 1px solid hsl(0 0% 100% / 0.55);
+  box-shadow:
+    0 1px 0 hsl(0 0% 100% / 0.55) inset,
+    0 16px 48px -18px hsl(30 10% 12% / 0.22);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+}
+
+.glass-btn {
+  background: hsl(152 25% 38% / 0.92);
+  border: 1px solid hsl(0 0% 100% / 0.25);
+  box-shadow:
+    0 1px 0 hsl(0 0% 100% / 0.2) inset,
+    0 8px 24px -10px hsl(152 25% 20% / 0.45);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  color: hsl(40 33% 98%);
+}
+
+.glass-btn:active {
+  transform: scale(0.98);
+}
