@@ -1,11 +1,17 @@
 import { Suspense } from "react";
 import Link from "next/link";
 import { calcBalance } from "@/lib/calc/balance";
+import { calcRunway } from "@/lib/calc/runway";
+import { calcSpendingPace } from "@/lib/calc/pace";
 import { formatMoney } from "@/lib/format";
 import { loadSafeToSpendV2 } from "@/features/money/safe-to-spend-data";
-import { UndoButtons } from "@/features/money/components/UndoButtons";
-import { calcSpendingPace } from "@/lib/calc/pace";
+import { getExpensesWithBucket } from "@/features/money/expenses-with-bucket";
 import { WalletHero } from "@/features/money/components/WalletHero";
+import { HomeSection } from "@/features/money/components/HomeSection";
+import { AffordForm } from "@/features/money/components/AffordForm";
+import { ExplainTimeline } from "@/features/money/components/ExplainTimeline";
+import { ReconcileForm } from "@/features/accounts/components/ReconcileForm";
+import { UndoButtons } from "@/features/money/components/UndoButtons";
 
 async function DashboardNumbers() {
   const data = await loadSafeToSpendV2();
@@ -28,8 +34,9 @@ async function DashboardNumbers() {
   }
 
   const overallBalance = calcBalance(income, expenses, adjustments);
+  const expensesForRunway = await getExpensesWithBucket();
+  const runway = calcRunway(safe.startBalance, expensesForRunway);
 
-  const daysInCycle = cycle.payCycleDays;
   const spentInCycle = expenses
     .filter(
       (e) =>
@@ -47,173 +54,196 @@ async function DashboardNumbers() {
     spentInCycle,
     dailySafe: safe.daily,
     daysLeft: safe.daysLeft,
-    daysInCycle,
+    daysInCycle: cycle.payCycleDays,
   });
-
-  const paceLine =
-    pace.status === "ahead"
-      ? `Spending faster than plan · ${Math.round(pace.usedRatio * 100)}% used`
-      : pace.status === "under"
-        ? `Under pace · ${Math.round(pace.usedRatio * 100)}% used of flexible`
-        : `On pace · ${Math.round(pace.usedRatio * 100)}% used`;
 
   const upcoming = safe.timeline.points
     .filter((p) => p.events.length > 0)
-    .slice(0, 3);
-
-  const latest = [...expenses]
-    .filter((e) => e.status === "actual")
-    .sort((a, b) => String(b.spent_on).localeCompare(String(a.spent_on)))
     .slice(0, 4);
 
-  const accountChips = accounts.map((a) => ({
+  const accountPeeks = accounts.map((a) => ({
     id: a.id,
     name: a.name,
+    type: a.type,
     balance: bookByAccount[a.id] ?? 0,
-    include_in_safe_to_spend: a.include_in_safe_to_spend,
+    includeInSafe: a.include_in_safe_to_spend,
   }));
 
   return (
-    <div className="space-y-4">
+    <>
       <WalletHero
         safe={safe}
         cycleStart={cycle.cycleStart}
         cycleEnd={cycle.cycleEnd}
+        accounts={accountPeeks}
         overallBalance={overallBalance}
-        accounts={accountChips}
-        paceLine={paceLine}
       />
 
+      {/* Quick actions */}
+      <section className="grid grid-cols-2 gap-3">
+        <Link
+          href="/money/expenses"
+          className="rounded-2xl border border-[hsl(var(--border))] bg-[hsl(var(--card))] p-4 shadow-sm active:scale-[0.98] transition"
+        >
+          <p className="text-sm font-medium">Add expense</p>
+          <p className="mt-0.5 text-xs text-[hsl(var(--muted-foreground))]">
+            Two-tap capture
+          </p>
+        </Link>
+        <Link
+          href="/money/income"
+          className="rounded-2xl border border-[hsl(var(--border))] bg-[hsl(var(--card))] p-4 shadow-sm active:scale-[0.98] transition"
+        >
+          <p className="text-sm font-medium">Mark salary</p>
+          <p className="mt-0.5 text-xs text-[hsl(var(--muted-foreground))]">
+            Received
+          </p>
+        </Link>
+      </section>
+
+      {/* Pace + runway — compact */}
+      <section className="rounded-2xl border border-[hsl(var(--border))] bg-[hsl(var(--card))] p-4 shadow-sm space-y-3">
+        <div className="flex items-center justify-between gap-2">
+          <div>
+            <p className="text-sm font-medium">Pace</p>
+            <p className="text-xs text-[hsl(var(--muted-foreground))]">
+              {pace.status === "ahead" && "Spending faster than the cycle"}
+              {pace.status === "under" && "Behind pace — room left"}
+              {pace.status === "on_track" && "On pace this cycle"}
+            </p>
+          </div>
+          <p className="text-sm font-semibold tabular-nums">
+            {Math.round(pace.usedRatio * 100)}%
+            <span className="font-normal text-[hsl(var(--muted-foreground))]">
+              {" "}
+              used
+            </span>
+          </p>
+        </div>
+        <div className="h-1.5 overflow-hidden rounded-full bg-[hsl(var(--muted))]">
+          <div
+            className={`h-full rounded-full ${
+              pace.status === "ahead"
+                ? "bg-amber-600"
+                : "bg-[hsl(var(--primary))]"
+            }`}
+            style={{
+              width: `${Math.min(100, Math.round(pace.usedRatio * 100))}%`,
+            }}
+          />
+        </div>
+        <div className="flex justify-between text-xs text-[hsl(var(--muted-foreground))]">
+          <span>
+            Runway lifestyle{" "}
+            <span className="font-medium text-[hsl(var(--foreground))] tabular-nums">
+              {runway.lifestyleMonths >= 99
+                ? "—"
+                : `${runway.lifestyleMonths} mo`}
+            </span>
+          </span>
+          <span>
+            Essentials{" "}
+            <span className="font-medium text-[hsl(var(--foreground))] tabular-nums">
+              {runway.essentialsMonths >= 99
+                ? "—"
+                : `${runway.essentialsMonths} mo`}
+            </span>
+          </span>
+        </div>
+      </section>
+
       {conflicts.length > 0 && (
-        <div className="rounded-xl border border-amber-200/80 bg-amber-50/70 px-3 py-2">
-          <p className="text-[11px] font-medium text-amber-900">Goal notes</p>
-          <ul className="mt-1 space-y-0.5">
-            {conflicts.slice(0, 2).map((m) => (
+        <section className="rounded-2xl border border-amber-200 bg-amber-50/80 p-4">
+          <p className="text-sm font-medium text-amber-900">Goal notes</p>
+          <ul className="mt-1.5 space-y-1">
+            {conflicts.map((m) => (
               <li key={m} className="text-xs text-amber-900/90">
                 {m}
               </li>
             ))}
           </ul>
-        </div>
+        </section>
       )}
 
-      {/* Upcoming — compact */}
       {upcoming.length > 0 && (
-        <section className="rounded-2xl border border-[hsl(var(--border))] bg-[hsl(var(--card))] px-4 py-3">
-          <div className="mb-2 flex items-center justify-between">
-            <h2 className="text-xs font-medium text-[hsl(var(--muted-foreground))]">
-              Upcoming
-            </h2>
+        <section className="rounded-2xl border border-[hsl(var(--border))] bg-[hsl(var(--card))] p-4 shadow-sm">
+          <div className="flex items-center justify-between">
+            <p className="text-sm font-medium">Upcoming</p>
             <Link
               href="/money"
-              className="text-[11px] text-[hsl(var(--primary))]"
+              className="text-xs text-[hsl(var(--muted-foreground))]"
             >
-              See all
+              Money
             </Link>
           </div>
-          <ul className="space-y-2">
+          <ul className="mt-3 space-y-2.5">
             {upcoming.map((p) => (
-              <li key={p.date} className="flex items-start justify-between gap-2 text-sm">
-                <div className="min-w-0">
-                  <p className="truncate font-medium">
-                    {p.events.map((e) => e.label).join(" · ")}
-                  </p>
-                  <p className="text-[11px] text-[hsl(var(--muted-foreground))]">
+              <li key={p.date} className="text-sm">
+                <div className="flex justify-between gap-2">
+                  <span className="text-[hsl(var(--muted-foreground))]">
                     {p.date}
-                  </p>
+                  </span>
+                  <span className="tabular-nums font-medium">
+                    {formatMoney(p.balance)}
+                  </span>
                 </div>
-                <span className="shrink-0 tabular-nums text-[hsl(var(--muted-foreground))]">
-                  {formatMoney(p.balance)}
-                </span>
+                <p className="text-xs text-[hsl(var(--muted-foreground))] truncate">
+                  {p.events.map((e) => e.label).join(" · ")}
+                </p>
               </li>
             ))}
           </ul>
         </section>
       )}
 
-      {/* Latest — compact */}
-      {latest.length > 0 && (
-        <section className="rounded-2xl border border-[hsl(var(--border))] bg-[hsl(var(--card))] px-4 py-3">
-          <div className="mb-2 flex items-center justify-between">
-            <h2 className="text-xs font-medium text-[hsl(var(--muted-foreground))]">
-              Latest
-            </h2>
-            <Link
-              href="/money/expenses"
-              className="text-[11px] text-[hsl(var(--primary))]"
-            >
-              See all
-            </Link>
-          </div>
-          <ul className="space-y-1.5">
-            {latest.map((e) => (
-              <li
-                key={e.id}
-                className="flex items-center justify-between gap-2 text-sm"
-              >
-                <span className="truncate text-[hsl(var(--muted-foreground))]">
-                  {e.note || "Expense"}
-                  {e.spent_on ? (
-                    <span className="ml-1 text-[10px] opacity-70">
-                      {e.spent_on}
-                    </span>
-                  ) : null}
-                </span>
-                <span className="shrink-0 tabular-nums font-medium">
-                  {formatMoney(
-                    Number(e.amount) * Number(e.rate_to_mad ?? 1)
-                  )}
-                </span>
-              </li>
-            ))}
-          </ul>
-        </section>
-      )}
+      <section className="rounded-2xl border border-[hsl(var(--border))] bg-[hsl(var(--card))] p-4 shadow-sm">
+        <p className="text-sm font-medium">Can I afford this?</p>
+        <p className="mt-0.5 mb-3 text-xs text-[hsl(var(--muted-foreground))]">
+          Preview impact before you buy — nothing is saved.
+        </p>
+        <AffordForm />
+      </section>
 
-      {/* Quick actions — one row */}
-      <div className="grid grid-cols-2 gap-2">
-        <Link
-          href="/money/expenses"
-          className="rounded-2xl border border-[hsl(var(--border))] bg-[hsl(var(--card))] px-4 py-3 text-left active:scale-[0.98]"
-        >
-          <p className="text-sm font-medium">Add expense</p>
-          <p className="text-[11px] text-[hsl(var(--muted-foreground))]">
-            Fast capture
-          </p>
-        </Link>
-        <Link
-          href="/money/income"
-          className="rounded-2xl border border-[hsl(var(--border))] bg-[hsl(var(--card))] px-4 py-3 text-left active:scale-[0.98]"
-        >
-          <p className="text-sm font-medium">Mark income</p>
-          <p className="text-[11px] text-[hsl(var(--muted-foreground))]">
-            Received
-          </p>
-        </Link>
-      </div>
+      <HomeSection
+        title="How the number is built"
+        subtitle="Timeline, lowest day, buffer"
+      >
+        <ExplainTimeline safe={safe} compact />
+      </HomeSection>
 
-      {/* Undo — tiny */}
-      <div className="rounded-2xl border border-[hsl(var(--border))] bg-[hsl(var(--card))] px-3 py-2">
+      <HomeSection
+        title="Reconcile"
+        subtitle="Match book balance to the real world"
+      >
+        <ReconcileForm accounts={accounts} bookByAccount={bookByAccount} />
+      </HomeSection>
+
+      <HomeSection title="Undo" subtitle="Last expense or last reconcile">
         <UndoButtons />
-      </div>
-    </div>
+      </HomeSection>
+    </>
   );
 }
 
 function NumbersSkeleton() {
   return (
     <div className="space-y-4">
-      <div className="h-44 animate-pulse rounded-2xl bg-[hsl(var(--muted))]" />
+      <div className="flex gap-2">
+        <div className="h-14 w-28 animate-pulse rounded-xl bg-[hsl(var(--muted))]" />
+        <div className="h-14 w-28 animate-pulse rounded-xl bg-[hsl(var(--muted))]" />
+      </div>
+      <div className="h-40 animate-pulse rounded-2xl bg-[hsl(var(--muted))]" />
       <div className="h-24 animate-pulse rounded-2xl bg-[hsl(var(--muted))]" />
-      <div className="h-20 animate-pulse rounded-2xl bg-[hsl(var(--muted))]" />
     </div>
   );
 }
 
 export default function DashboardPage() {
   return (
-    <Suspense fallback={<NumbersSkeleton />}>
-      <DashboardNumbers />
-    </Suspense>
+    <div className="space-y-4">
+      <Suspense fallback={<NumbersSkeleton />}>
+        <DashboardNumbers />
+      </Suspense>
+    </div>
   );
 }
