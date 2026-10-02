@@ -11,7 +11,7 @@ export type ExpenseRow = {
   id?: string;
   amount: number | string;
   rate_to_mad?: number | string | null;
-  status: string;
+  status: "actual" | "planned";
   spent_on?: string | null;
   note?: string | null;
   account_id?: string | null;
@@ -72,7 +72,7 @@ export async function loadSafeToSpendV2() {
     getSettings(),
   ]);
 
-  const expenses: ExpenseRow[] = (expensesRaw ?? []).map((row) => {
+    const expenses: ExpenseRow[] = (expensesRaw ?? []).map((row) => {
     const cat = row.categories as
       | { bucket?: string }
       | { bucket?: string }[]
@@ -80,11 +80,15 @@ export async function loadSafeToSpendV2() {
     let bucket: string | null = null;
     if (Array.isArray(cat)) bucket = cat[0]?.bucket ?? null;
     else if (cat) bucket = cat.bucket ?? null;
+
+    const status: "actual" | "planned" =
+      row.status === "planned" ? "planned" : "actual";
+
     return {
       id: row.id,
       amount: row.amount,
       rate_to_mad: row.rate_to_mad,
-      status: row.status,
+      status,
       spent_on: row.spent_on,
       note: row.note,
       account_id: row.account_id,
