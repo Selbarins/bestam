@@ -7,10 +7,11 @@ import { loadSafeToSpendV2 } from "@/features/money/safe-to-spend-data";
 import { WalletHero } from "@/features/money/components/WalletHero";
 import { BalanceSparkline } from "@/features/money/components/BalanceSparkline";
 import { AffordForm } from "@/features/money/components/AffordForm";
+import { buildBalanceSeries } from "@/lib/calc/balance-history";
 
 async function DashboardNumbers() {
   const data = await loadSafeToSpendV2();
-  const { safe, cycle, expenses } = data;
+  const { safe, cycle, expenses, income } = data;
 
   const spentInCycle = expenses
     .filter(
@@ -30,6 +31,32 @@ async function DashboardNumbers() {
     startBalance: safe.startBalance,
     daysLeft: safe.daysLeft,
     daysInCycle: cycle.payCycleDays,
+  });
+
+    const pastTx = [
+    ...expenses
+      .filter((e) => e.status === "actual" && e.spent_on)
+      .map((e) => ({
+        amount: e.amount,
+        rate_to_mad: e.rate_to_mad,
+        date: e.spent_on as string,
+        sign: -1 as const,
+      })),
+    ...(data.income ?? [])
+      .filter((i) => i.received_at)
+      .map((i) => ({
+        amount: i.amount,
+        rate_to_mad: i.rate_to_mad,
+        date: String(i.received_at).slice(0, 10),
+        sign: 1 as const,
+      })),
+  ];
+
+  const series = buildBalanceSeries({
+    todayBalance: safe.startBalance,
+    futurePoints: safe.timeline.points,
+    pastTx,
+    pastDays: 14,
   });
 
   const latest = [...expenses]
@@ -62,11 +89,7 @@ async function DashboardNumbers() {
       <section className="glass rounded-2xl p-4">
         <p className="text-sm font-medium">Balance</p>
         <div className="mt-2">
-          <BalanceSparkline
-            points={safe.timeline.points}
-            lowestDate={safe.lowestDate}
-            lowestBalance={safe.lowestBalance}
-          />
+        <BalanceSparkline series={series} />
         </div>
       </section>
 
