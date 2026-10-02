@@ -20,19 +20,12 @@ export type ExpenseRow = {
   created_at?: string | null;
 };
 
-export type QuickChip = {
-  note: string;
-  amount: number;
-  category_id: string | null;
-  count: number;
-};
-
 export async function loadSafeToSpendV2() {
   const supabase = await createClient();
   const period = periodMonthKey();
 
   const [
-    { data: income },
+    { data: incomeRaw },
     { data: expensesRaw },
     { data: cart },
     { data: recurring },
@@ -45,12 +38,12 @@ export async function loadSafeToSpendV2() {
     supabase
       .from("income")
       .select(
-                "id, amount, rate_to_mad, status, spent_on, note, account_id, category_id, created_at, categories(bucket)"
+        "id, amount, rate_to_mad, received_at, expected_on, is_salary, name, account_id"
       ),
     supabase
       .from("expenses")
       .select(
-        "id, amount, rate_to_mad, status, spent_on, note, account_id, category_id, categories(bucket)"
+        "id, amount, rate_to_mad, status, spent_on, note, account_id, category_id, created_at, categories(bucket)"
       )
       .order("spent_on", { ascending: false })
       .limit(400),
@@ -73,7 +66,9 @@ export async function loadSafeToSpendV2() {
     getSettings(),
   ]);
 
-    const expenses: ExpenseRow[] = (expensesRaw ?? []).map((row) => {
+  const income = incomeRaw ?? [];
+
+  const expenses: ExpenseRow[] = (expensesRaw ?? []).map((row) => {
     const cat = row.categories as
       | { bucket?: string }
       | { bucket?: string }[]
@@ -95,23 +90,23 @@ export async function loadSafeToSpendV2() {
       account_id: row.account_id,
       category_id: row.category_id,
       bucket,
-      created_at: row.created_at,
+      created_at: row.created_at ?? null,
     };
   });
 
   let startBalance = 0;
   for (const a of accounts) {
     if (!a.include_in_safe_to_spend) continue;
-    startBalance += calcBalance(income ?? [], expenses, adjustments ?? [], {
+    startBalance += calcBalance(income, expenses, adjustments ?? [], {
       accountId: a.id,
       includeUnassigned: a.type === "bank",
     });
   }
   if (accounts.length === 0) {
-    startBalance = calcBalance(income ?? [], expenses, adjustments ?? []);
+    startBalance = calcBalance(income, expenses, adjustments ?? []);
   }
 
-  const lastSalary = (income ?? [])
+  const lastSalary = income
     .filter((i) => i.received_at && i.is_salary)
     .sort((a, b) =>
       String(b.received_at).localeCompare(String(a.received_at))
@@ -126,7 +121,7 @@ export async function loadSafeToSpendV2() {
   const conflicts = detectGoalConflicts(goalEvents, startBalance);
 
   const baseEvents = buildTimelineEvents({
-    income: income ?? [],
+    income,
     expenses,
     recurring: recurring ?? [],
     occurrences: occurrences ?? [],
@@ -144,13 +139,9 @@ export async function loadSafeToSpendV2() {
     safetyBuffer: settings.safety_buffer,
   });
 
-  // Latest actuals for home
   const latest = expenses
     .filter((e) => e.status === "actual")
-    .slice(0, 5);
-
-  // Quick chips: most common note+amount in last ~90 days of actuals
-  const chips = buildQuickChips(expenses);
+    .slice(0, 8);
 
   return {
     safe,
@@ -159,45 +150,11 @@ export async function loadSafeToSpendV2() {
     settings,
     startBalance,
     events,
-    income: income ?? [],
+    income,
     expenses,
     adjustments: adjustments ?? [],
     goals: goals ?? [],
     conflicts,
     latest,
-    chips,
   };
-}
-
-function buildQuickChips(expenses: ExpenseRow[]): QuickChip[] {
-  const cutoff = new Date();
-  cutoff.setDate(cutoff.getDate() - 90);
-  const cut = cutoff.toISOString().slice(0, 10);
-
-  const map = new Map<string, QuickChip>();
-
-  for (const e of expenses) {
-    if (e.status !== "actual") continue;
-    if (!e.spent_on || e.spent_on < cut) continue;
-    const note = (e.note || "").trim();
-    if (!note) continue;
-    const amount = Math.round(Number(e.amount) * 100) / 100;
-    if (!(amount > 0)) continue;
-    const key = `${note.toLowerCase()}|${amount}`;
-    const prev = map.get(key);
-    if (prev) {
-      prev.count += 1;
-    } else {
-      map.set(key, {
-        note,
-        amount,
-        category_id: e.category_id ?? null,
-        count: 1,
-      });
-    }
-  }
-
-  return [...map.values()]
-    .sort((a, b) => b.count - a.count)
-    .slice(0, 4);
 }
