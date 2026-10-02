@@ -96,6 +96,11 @@ export function AffordForm() {
           <p className={`text-sm font-medium ${statusCopy[result.status].tone}`}>
             {statusCopy[result.status].title}
           </p>
+          {result.coach ? (
+              <p className="text-sm text-[hsl(var(--muted-foreground))]">
+                {result.coach}
+              </p>
+            ) : null}
           <p className="text-sm">
             <span className="font-medium">{result.label}</span>
             {" · "}
