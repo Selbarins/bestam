@@ -16,6 +16,7 @@ export type AffordResult = {
   afterDiscretionary: number;
   /** Comfortable | Tight | Breaches buffer | Overdrawn */
   status: "comfortable" | "tight" | "buffer" | "overdrawn";
+  coach: string | null;
 };
 
 export async function previewPurchase(input: {
@@ -63,4 +64,16 @@ export async function previewPurchase(input: {
       status,
     },
   };
+  
+  let coach: string | null = null;
+  try {
+    if (process.env.GROQ_API_KEY) {
+      const { polishAffordCoach } = await import("@/lib/calc/afford-coach");
+      coach = await polishAffordCoach(result);
+    }
+  } catch {
+    coach = null;
+  }
+
+  return { success: true, result: { ...result, coach } };
 }
