@@ -2,7 +2,7 @@ import type { AffordResult } from "@/features/money/actions-afford";
 
 /** Always works — no API key needed. */
 export function templateAffordCoach(
-  r: Pick<AffordResult, "status">
+  r: Pick<AffordResult, "status"> | AffordResult
 ): string {
   if (r.status === "overdrawn") {
     return "This would push you below zero before payday.";
