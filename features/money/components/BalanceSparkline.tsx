@@ -87,9 +87,6 @@ export function BalanceSparkline({ series }: Props) {
           />
         </AreaChart>
       </ResponsiveContainer>
-      <p className="mt-1 text-center text-[11px] text-[hsl(var(--muted-foreground))]">
-        Past ← today → projected
-      </p>
     </div>
   );
 }
