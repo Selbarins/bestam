@@ -84,9 +84,6 @@ async function DashboardNumbers() {
       <section className="rounded-2xl border border-[hsl(var(--border))] bg-[hsl(var(--card))]/80 p-4 shadow-sm backdrop-blur-sm">
         <div className="flex items-baseline justify-between">
           <p className="text-sm font-medium">Balance</p>
-          <p className="text-xs text-[hsl(var(--muted-foreground))]">
-            14d history · projected
-          </p>
         </div>
         <div className="mt-1">
           <BalanceSparkline series={series} />
@@ -126,11 +123,6 @@ async function DashboardNumbers() {
         </p>
         <AffordForm />
       </section>
-
-      {/* overallBalance kept available if you want a tiny footer later */}
-      <p className="text-center text-[10px] text-[hsl(var(--muted-foreground))]">
-        Book {formatMoney(overallBalance)}
-      </p>
     </>
   );
 }
