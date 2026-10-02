@@ -2,7 +2,6 @@ import { Suspense } from "react";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { ActivityRow } from "@/features/money/components/ActivityRow";
-import { formatWhen } from "@/lib/format-time";
 
 async function RecentActivity() {
   const supabase = await createClient();
@@ -35,7 +34,8 @@ async function RecentActivity() {
       kind: "income" as const,
       title: i.name,
       amount: Number(i.amount),
-      date: i.created_at ?? i.received_at ?? "",
+      // Prefer created_at for time; fall back to received_at
+      date: i.created_at || i.received_at || "",
       meta: i.received_at ? "Received" : "Pending",
     })),
     ...(expenses ?? []).map((e) => ({
@@ -66,11 +66,7 @@ async function RecentActivity() {
   return (
     <div className="space-y-2">
       {rows.map((row) => (
-        <ActivityRow
-          key={`${row.kind}-${row.id}`}
-          {...row}
-          date={formatWhen(row.date)}
-        />
+        <ActivityRow key={`${row.kind}-${row.id}`} {...row} />
       ))}
     </div>
   );
@@ -96,7 +92,6 @@ export default function MoneyPage() {
         </p>
       </div>
 
-      {/* Compact action row — not big cards */}
       <div className="flex flex-wrap gap-2">
         <Link
           href="/money/expenses"
