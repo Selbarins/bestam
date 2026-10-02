@@ -198,32 +198,57 @@ export function ExpenseForm({
         </div>
       )}
 
-      <div>
-        <p className="mb-3 text-sm font-medium text-[hsl(var(--muted-foreground))]">
+            <div className="space-y-4">
+        <p className="text-sm font-medium text-[hsl(var(--muted-foreground))]">
           Category
         </p>
-        <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
-          {categories.map((cat) => (
-            <label
-              key={cat.id}
-              className={`cursor-pointer rounded-xl border px-3 py-3 text-sm transition-all duration-150 ${
-                categoryId === cat.id
-                  ? "border-[hsl(var(--primary))] bg-[hsl(var(--accent))] shadow-sm"
-                  : "border-[hsl(var(--border))] bg-[hsl(var(--card))] hover:border-[hsl(var(--primary)/0.4)]"
-              }`}
-            >
-              <input
-                type="radio"
-                name="category_id"
-                value={cat.id}
-                checked={categoryId === cat.id}
-                onChange={() => setCategoryId(cat.id)}
-                className="sr-only"
-              />
-              <span className="font-medium">{cat.name}</span>
-            </label>
-          ))}
-        </div>
+        {(
+          [
+            { key: "essentials", label: "Essentials" },
+            { key: "lifestyle", label: "Lifestyle" },
+            { key: "growth", label: "Growth" },
+            { key: "other", label: "Other" },
+          ] as const
+        ).map((group) => {
+          const items = categories.filter(
+            (c) =>
+              (c.bucket || "other").toLowerCase() === group.key ||
+              (group.key === "other" &&
+                !["essentials", "lifestyle", "growth"].includes(
+                  (c.bucket || "").toLowerCase()
+                ))
+          );
+          if (items.length === 0) return null;
+          return (
+            <div key={group.key}>
+              <p className="mb-2 text-[11px] font-medium uppercase tracking-wide text-[hsl(var(--muted-foreground))]">
+                {group.label}
+              </p>
+              <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+                {items.map((cat) => (
+                  <label
+                    key={cat.id}
+                    className={`cursor-pointer rounded-xl border px-3 py-2.5 text-sm transition-all duration-150 ${
+                      categoryId === cat.id
+                        ? "border-[hsl(var(--primary))] bg-[hsl(var(--accent))] shadow-sm"
+                        : "glass hover:border-[hsl(var(--primary)/0.4)]"
+                    }`}
+                  >
+                    <input
+                      type="radio"
+                      name="category_id"
+                      value={cat.id}
+                      checked={categoryId === cat.id}
+                      onChange={() => setCategoryId(cat.id)}
+                      className="sr-only"
+                    />
+                    <span className="font-medium">{cat.name}</span>
+                  </label>
+                ))}
+              </div>
+            </div>
+          );
+        })}
       </div>
 
       <div>
@@ -249,7 +274,7 @@ export function ExpenseForm({
       <button
         type="submit"
         disabled={isPending}
-        className="w-full rounded-2xl bg-[hsl(var(--primary))] py-4 text-sm font-medium text-[hsl(var(--primary-foreground))] transition-all duration-200 hover:brightness-110 active:scale-[0.98] disabled:opacity-60"
+        className="glass-btn w-full rounded-2xl py-3.5 text-sm font-medium disabled:opacity-60"
       >
         {isPending ? "Saving…" : offline ? "Save offline" : "Save expense"}
       </button>
