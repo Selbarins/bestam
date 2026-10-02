@@ -50,9 +50,18 @@ export async function previewPurchase(input: {
   else if (after.daily < before.daily * 0.7 || after.daily < 20)
     status = "tight";
 
-  return {
-    success: true,
-    result: {
+    const result: AffordResult = {
+    amount,
+    label,
+    date,
+    beforeDaily: before.daily,
+    afterDaily: after.daily,
+    beforeLowest: before.lowestBalance,
+    afterLowest: after.lowestBalance,
+    beforeDiscretionary: before.discretionary,
+    afterDiscretionary: after.discretionary,
+    status,
+    coach: templateAffordCoach({
       amount,
       label,
       date,
@@ -63,8 +72,18 @@ export async function previewPurchase(input: {
       beforeDiscretionary: before.discretionary,
       afterDiscretionary: after.discretionary,
       status,
-    },
+      coach: null,
+    }),
   };
+
+  // Optional AI rewrite (never blocks correctness)
+  try {
+    result.coach = await polishAffordCoach(result);
+  } catch {
+    // keep template coach
+  }
+
+  return { success: true, result };
   
   let coach: string | null = null;
   try {
