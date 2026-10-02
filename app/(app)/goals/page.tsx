@@ -42,7 +42,7 @@ async function GoalsList() {
 
   if (!goals?.length) {
     return (
-      <div className="rounded-2xl border border-dashed border-[hsl(var(--border))] px-5 py-10 text-center">
+        <div className="glass rounded-2xl px-5 py-10 text-center">
         <p className="text-sm text-[hsl(var(--muted-foreground))]">
           No goals yet
         </p>
@@ -106,9 +106,9 @@ async function FormSection() {
 
 export default function GoalsPage() {
   return (
-    <div className="space-y-8">
+      <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-semibold tracking-tight">Goals</h1>
+        <h1 className="text-2xl font-semibold tracking-tight">Goals</h1>
         <p className="mt-1 text-sm text-[hsl(var(--muted-foreground))]">
           Savings · Emergency · Caps
         </p>
