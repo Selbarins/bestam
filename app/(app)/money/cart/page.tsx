@@ -30,7 +30,7 @@ async function CartContent() {
   return (
     <div className="space-y-6">
       {list.length > 0 && (
-        <div className="rounded-2xl border border-[hsl(var(--border))] bg-[hsl(var(--card))] p-5">
+          <div className="glass rounded-2xl p-5">
           <p className="text-sm text-[hsl(var(--muted-foreground))]">
             Planned total
           </p>
@@ -46,7 +46,7 @@ async function CartContent() {
       <CartForm categories={categories ?? []} />
 
       {list.length === 0 ? (
-        <div className="rounded-2xl border border-dashed border-[hsl(var(--border))] px-5 py-10 text-center">
+          <div className="glass rounded-2xl px-5 py-10 text-center">
           <p className="text-sm text-[hsl(var(--muted-foreground))]">
             Cart is empty
           </p>
@@ -89,17 +89,17 @@ function CartSkeleton() {
 
 export default function CartPage() {
   return (
-    <div className="space-y-8">
-      <div className="flex items-center justify-between">
+      <div className="space-y-6">
+      <div className="flex items-center justify-between gap-3">
         <div>
-          <h1 className="text-3xl font-semibold tracking-tight">Cart</h1>
+          <h1 className="text-2xl font-semibold tracking-tight">Cart</h1>
           <p className="mt-1 text-sm text-[hsl(var(--muted-foreground))]">
             Planned buys
           </p>
         </div>
         <Link
           href="/money"
-          className="text-sm text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--foreground))]"
+          className="glass rounded-full px-3 py-1.5 text-xs font-medium"
         >
           Back
         </Link>
