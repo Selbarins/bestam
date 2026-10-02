@@ -18,51 +18,56 @@ export function BottomNav() {
   const pathname = usePathname();
   const router = useRouter();
   const [pendingHref, setPendingHref] = useState<string | null>(null);
-  const [isPending, startTransition] = useTransition();
+  const [, startTransition] = useTransition();
 
-  // Clear optimistic state once the real route catches up
   useEffect(() => {
     setPendingHref(null);
   }, [pathname]);
 
   useEffect(() => {
-  // Prefetch the main tabs so data is often ready
-  ["/money", "/goals", "/insights", "/settings"].forEach((href) => {
-    router.prefetch(href);
-  });
+    ["/money", "/goals", "/insights", "/settings"].forEach((href) => {
+      router.prefetch(href);
+    });
   }, [router]);
 
   const current = pendingHref ?? pathname;
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-50 border-t border-[hsl(var(--border))] bg-[hsl(var(--card))]/80 backdrop-blur-xl">
-      <div className="mx-auto flex max-w-lg items-center justify-around px-2 pb-[env(safe-area-inset-bottom)] pt-2">
+    <nav className="fixed bottom-0 left-0 right-0 z-50 px-3 pb-[max(0.5rem,env(safe-area-inset-bottom))] pt-2">
+      <div
+        className="mx-auto flex max-w-lg items-center justify-around rounded-2xl px-1 py-1.5"
+        style={{
+          background: "hsl(40 30% 99% / 0.72)",
+          border: "1px solid hsl(0 0% 100% / 0.5)",
+          boxShadow:
+            "0 1px 0 hsl(0 0% 100% / 0.55) inset, 0 12px 40px -12px hsl(30 10% 12% / 0.2)",
+          backdropFilter: "blur(20px)",
+          WebkitBackdropFilter: "blur(20px)",
+        }}
+      >
         {items.map(({ href, label, icon: Icon }) => {
           const active =
-            href === "/"
-              ? current === "/"
-              : current.startsWith(href);
+            href === "/" ? current === "/" : current.startsWith(href);
 
           return (
             <Link
               key={href}
               href={href}
-              onClick={(e) => {
-                // Instant visual feedback
+              onClick={() => {
                 setPendingHref(href);
                 startTransition(() => {
                   router.push(href);
                 });
               }}
               className={cn(
-                "flex flex-col items-center gap-1 rounded-lg px-3 py-2 text-xs transition-colors",
+                "flex min-w-[3.25rem] flex-col items-center gap-0.5 rounded-xl px-2.5 py-1.5 text-[10px] transition-all",
                 active
-                  ? "text-[hsl(var(--primary))]"
-                  : "text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--foreground))]"
+                  ? "bg-[hsl(var(--primary)/0.12)] text-[hsl(var(--primary))]"
+                  : "text-[hsl(var(--muted-foreground))]"
               )}
             >
               <Icon className="h-5 w-5" strokeWidth={active ? 2.5 : 2} />
-              <span>{label}</span>
+              <span className="font-medium">{label}</span>
             </Link>
           );
         })}
