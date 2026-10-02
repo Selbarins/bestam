@@ -1,51 +1,23 @@
-import type { Metadata, Viewport } from "next";
-import { DM_Sans } from "next/font/google";
-import "./globals.css";
+import { Suspense } from "react";
+import { BottomNav } from "@/components/layout/BottomNav";
 
-const dmSans = DM_Sans({
-  subsets: ["latin"],
-  variable: "--font-sans",
-  weight: ["400", "500", "600", "700"],
-});
-
-export const metadata: Metadata = {
-  title: "Bestam",
-  description: "Personal budget & financial stability",
-  manifest: "/manifest.json",
-  icons: {
-    icon: [
-      { url: "/favicon.ico", sizes: "any" },
-      { url: "/icons/favicon-32.png", sizes: "32x32", type: "image/png" },
-      { url: "/icons/icon-192.png", sizes: "192x192", type: "image/png" },
-      { url: "/icons/icon-512.png", sizes: "512x512", type: "image/png" },
-    ],
-    apple: [
-      { url: "/apple-touch-icon.png", sizes: "180x180", type: "image/png" },
-    ],
-  },
-  appleWebApp: {
-    capable: true,
-    statusBarStyle: "default",
-    title: "Bestam",
-  },
-};
-
-export const viewport: Viewport = {
-  themeColor: "#faf8f5",
-  width: "device-width",
-  initialScale: 1,
-  maximumScale: 1,
-  userScalable: false,
-};
-
-export default function RootLayout({
+export default function AppLayout({
   children,
-}: Readonly<{
+}: {
   children: React.ReactNode;
-}>) {
+}) {
   return (
-    <html lang="en" className={dmSans.variable}>
-      <body className="font-sans antialiased">{children}</body>
-    </html>
+    <div
+      className="min-h-screen pb-24"
+      style={{
+        background:
+          "radial-gradient(1200px 600px at 10% -10%, hsl(152 30% 90% / 0.55), transparent), radial-gradient(900px 500px at 100% 0%, hsl(40 40% 94% / 0.9), transparent), hsl(40 33% 98%)",
+      }}
+    >
+      <main className="mx-auto max-w-lg px-4 pt-6">{children}</main>
+      <Suspense fallback={null}>
+        <BottomNav />
+      </Suspense>
+    </div>
   );
 }
