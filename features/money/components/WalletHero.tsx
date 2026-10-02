@@ -1,157 +1,144 @@
 "use client";
 
 import { useState } from "react";
-import Link from "next/link";
 import { formatMoney } from "@/lib/format";
 import type { SafeToSpendV2Result } from "@/lib/calc/safe-to-spend-v2";
 
-type AccountChip = {
+type AccountPeek = {
   id: string;
   name: string;
+  type: string;
   balance: number;
-  include_in_safe_to_spend: boolean;
+  includeInSafe: boolean;
 };
 
 type Props = {
   safe: SafeToSpendV2Result;
   cycleStart: string;
   cycleEnd: string;
+  accounts: AccountPeek[];
   overallBalance: number;
-  accounts: AccountChip[];
-  paceLine?: string;
 };
 
 export function WalletHero({
   safe,
   cycleStart,
   cycleEnd,
-  overallBalance,
   accounts,
-  paceLine,
+  overallBalance,
 }: Props) {
   const [mode, setMode] = useState<"today" | "until">("today");
-  const [hide, setHide] = useState(false);
+  const [hidden, setHidden] = useState(false);
 
   const daily = safe.daily;
   const until = Math.max(0, safe.discretionary);
-  const hero = mode === "today" ? daily : until;
-  const zero = daily <= 0;
+  const isZero = daily <= 0;
 
-  const mask = (n: number) => (hide ? "••••" : formatMoney(n));
+  const display = (n: number) => (hidden ? "••••" : formatMoney(n));
 
   return (
-    <section className="relative overflow-hidden rounded-2xl bg-[hsl(var(--primary))] text-[hsl(var(--primary-foreground))] shadow-md">
-      {/* stitched top edge */}
-      <div className="absolute inset-x-3 top-2 h-px border-t border-dashed border-white/25" />
+    <div className="space-y-3">
+      {/* Peeking account chips */}
+      {accounts.length > 0 && (
+        <div className="flex gap-2 overflow-x-auto pb-1">
+          {accounts.map((a) => (
+            <div
+              key={a.id}
+              className="min-w-[7.5rem] shrink-0 rounded-xl border border-[hsl(var(--border))] bg-[hsl(var(--card))] px-3 py-2 shadow-sm"
+            >
+              <p className="text-[10px] font-medium uppercase tracking-wide text-[hsl(var(--muted-foreground))]">
+                {a.name}
+                {!a.includeInSafe && " · out"}
+              </p>
+              <p className="mt-0.5 text-sm font-semibold tabular-nums">
+                {display(a.balance)}
+              </p>
+            </div>
+          ))}
+        </div>
+      )}
 
-      <div className="p-4 pb-3 pt-5">
-        {/* peeking accounts */}
-        {accounts.length > 0 && (
-          <div className="mb-3 flex gap-2 overflow-x-auto pb-1">
-            {accounts.map((a) => (
-              <div
-                key={a.id}
-                className="shrink-0 rounded-xl border border-white/20 bg-white/10 px-3 py-1.5 backdrop-blur-sm"
-              >
-                <p className="text-[10px] opacity-80">
-                  {a.name}
-                  {!a.include_in_safe_to_spend ? " · excl." : ""}
-                </p>
-                <p className="text-sm font-medium tabular-nums">
-                  {mask(a.balance)}
-                </p>
-              </div>
-            ))}
-          </div>
-        )}
+      {/* Sage wallet card */}
+      <section className="relative overflow-hidden rounded-2xl bg-[hsl(var(--primary))] p-5 text-[hsl(var(--primary-foreground))] shadow-md">
+        {/* Stitch / pocket line */}
+        <div className="pointer-events-none absolute inset-x-4 top-3 h-px bg-white/25" />
+        <div className="pointer-events-none absolute inset-y-4 left-3 w-px bg-white/15" />
 
-        {/* header + toggle */}
         <div className="flex items-center justify-between gap-2">
-          <p className="text-[11px] font-medium tracking-wide opacity-90">
+          <p className="text-xs font-medium tracking-wide opacity-90">
             Safe to spend
           </p>
-          <div className="flex rounded-full bg-black/20 p-0.5 text-[11px]">
+          <div className="flex items-center gap-2">
             <button
               type="button"
-              onClick={() => setMode("today")}
-              className={`rounded-full px-2.5 py-1 transition ${
-                mode === "today"
-                  ? "bg-white text-[hsl(var(--primary))]"
-                  : "opacity-80"
-              }`}
+              onClick={() => setHidden((h) => !h)}
+              className="rounded-full bg-black/15 px-2.5 py-1 text-[11px] opacity-90 active:scale-[0.98]"
+              aria-label={hidden ? "Show amounts" : "Hide amounts"}
             >
-              Today
+              {hidden ? "Show" : "Hide"}
             </button>
-            <button
-              type="button"
-              onClick={() => setMode("until")}
-              className={`rounded-full px-2.5 py-1 transition ${
-                mode === "until"
-                  ? "bg-white text-[hsl(var(--primary))]"
-                  : "opacity-80"
-              }`}
-            >
-              Until payday
-            </button>
+            <div className="flex rounded-full bg-black/15 p-0.5 text-[11px]">
+              <button
+                type="button"
+                onClick={() => setMode("today")}
+                className={`rounded-full px-2.5 py-1 transition ${
+                  mode === "today"
+                    ? "bg-white/95 text-[hsl(var(--primary))]"
+                    : "opacity-80"
+                }`}
+              >
+                Today
+              </button>
+              <button
+                type="button"
+                onClick={() => setMode("until")}
+                className={`rounded-full px-2.5 py-1 transition ${
+                  mode === "until"
+                    ? "bg-white/95 text-[hsl(var(--primary))]"
+                    : "opacity-80"
+                }`}
+              >
+                Until payday
+              </button>
+            </div>
           </div>
         </div>
 
-        {/* hero number */}
-        <p
-          className={`mt-2 text-4xl font-semibold tracking-tight tabular-nums ${
-            zero ? "text-amber-100" : ""
-          }`}
-        >
-          {mask(hero)}
-          <span className="ml-1 text-base font-medium opacity-80">
-            {mode === "today" ? "/day" : " total"}
-          </span>
-        </p>
-
-        <p className="mt-1 text-[11px] opacity-85">
-          Balance {mask(overallBalance)}
-          {safe.safetyBuffer > 0
-            ? ` · buffer ${hide ? "••••" : formatMoney(safe.safetyBuffer)}`
-            : ""}
-        </p>
-        <p className="text-[11px] opacity-70">
-          {safe.daysLeft}d left · {cycleStart} → {cycleEnd}
-        </p>
-
-        {zero && (
-          <p className="mt-2 rounded-lg bg-black/15 px-2.5 py-1.5 text-[11px]">
-            Nothing free today
-            {safe.lowestDate ? ` · recovers around ${safe.lowestDate}` : ""}
+        {isZero && mode === "today" ? (
+          <div className="mt-4 space-y-1">
+            <p className="text-2xl font-semibold tracking-tight">
+              Nothing free today
+            </p>
+            <p className="text-sm opacity-90">
+              Back on track after the tightest day
+              {safe.lowestDate ? ` (${safe.lowestDate})` : ""}.
+            </p>
+          </div>
+        ) : (
+          <p className="mt-4 text-4xl font-semibold tracking-tight tabular-nums">
+            {mode === "today" ? display(daily) : display(until)}
+            <span className="ml-1.5 text-base font-medium opacity-80">
+              {mode === "today" ? "/day" : " total"}
+            </span>
           </p>
         )}
 
-        {paceLine && !zero && (
-          <p className="mt-2 text-[11px] opacity-90">{paceLine}</p>
-        )}
-
-        {/* action pills */}
-        <div className="mt-3 flex flex-wrap gap-2">
-          <Link
-            href="/money"
-            className="rounded-full bg-white/15 px-3 py-1.5 text-[11px] font-medium backdrop-blur-sm active:scale-[0.98]"
-          >
-            Can I afford…?
-          </Link>
-          <Link
-            href="/settings"
-            className="rounded-full bg-white/15 px-3 py-1.5 text-[11px] font-medium backdrop-blur-sm active:scale-[0.98]"
-          >
-            Reconcile
-          </Link>
-          <button
-            type="button"
-            onClick={() => setHide((h) => !h)}
-            className="rounded-full bg-white/15 px-3 py-1.5 text-[11px] font-medium backdrop-blur-sm active:scale-[0.98]"
-          >
-            {hide ? "Show" : "Hide"}
-          </button>
-        </div>
-      </div>
-    </section>
+        <p className="mt-3 text-[11px] opacity-85">
+          Book {display(overallBalance)}
+          {" · "}
+          Spendable {display(safe.startBalance)}
+        </p>
+        <p className="text-[11px] opacity-80">
+          Lowest {display(safe.lowestBalance)}
+          {safe.lowestDate ? ` on ${safe.lowestDate}` : ""}
+          {safe.safetyBuffer > 0
+            ? ` · buffer ${display(safe.safetyBuffer)}`
+            : ""}
+        </p>
+        <p className="text-[11px] opacity-75">
+          Cycle {cycleStart} → {cycleEnd} · {safe.daysLeft}d left
+        </p>
+      </section>
+    </div>
   );
 }
