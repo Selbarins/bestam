@@ -17,6 +17,7 @@ export type ExpenseRow = {
   account_id?: string | null;
   category_id?: string | null;
   bucket?: string | null;
+  created_at?: string | null;
 };
 
 export type QuickChip = {
@@ -44,7 +45,7 @@ export async function loadSafeToSpendV2() {
     supabase
       .from("income")
       .select(
-        "id, amount, rate_to_mad, received_at, expected_on, is_salary, name, account_id"
+                "id, amount, rate_to_mad, status, spent_on, note, account_id, category_id, created_at, categories(bucket)"
       ),
     supabase
       .from("expenses")
@@ -94,6 +95,7 @@ export async function loadSafeToSpendV2() {
       account_id: row.account_id,
       category_id: row.category_id,
       bucket,
+      created_at: row.created_at,
     };
   });
 
