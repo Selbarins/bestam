@@ -25,7 +25,7 @@ export function BalanceSparkline({ series }: Props) {
   if (series.length < 2) {
     return (
       <p className="py-8 text-center text-xs text-[hsl(var(--muted-foreground))]">
-        Not enough history yet
+        Not enough data yet
       </p>
     );
   }
@@ -43,8 +43,8 @@ export function BalanceSparkline({ series }: Props) {
         <AreaChart data={data} margin={{ top: 8, right: 4, left: 0, bottom: 0 }}>
           <defs>
             <linearGradient id="balFill" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor="rgba(255,255,255,0.45)" stopOpacity={1} />
-              <stop offset="100%" stopColor="rgba(255,255,255,0)" stopOpacity={0} />
+              <stop offset="0%" stopColor="hsl(152 25% 38%)" stopOpacity={0.35} />
+              <stop offset="100%" stopColor="hsl(152 25% 38%)" stopOpacity={0.02} />
             </linearGradient>
           </defs>
           <XAxis
@@ -62,7 +62,6 @@ export function BalanceSparkline({ series }: Props) {
               border: "1px solid hsl(40 15% 90%)",
               background: "hsl(40 30% 99%)",
               fontSize: 12,
-              boxShadow: "0 8px 30px rgba(0,0,0,0.08)",
             }}
             formatter={(v: number) => [formatMoney(v), "Balance"]}
             labelFormatter={(_, pl) => pl?.[0]?.payload?.date ?? ""}
@@ -72,7 +71,7 @@ export function BalanceSparkline({ series }: Props) {
               x={today.date.slice(5)}
               stroke="hsl(152 25% 38%)"
               strokeDasharray="3 4"
-              strokeOpacity={0.5}
+              strokeOpacity={0.45}
             />
           )}
           <Area
