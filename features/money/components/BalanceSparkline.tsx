@@ -7,105 +7,88 @@ import {
   Tooltip,
   XAxis,
   YAxis,
-  ReferenceDot,
+  ReferenceLine,
 } from "recharts";
-import type { TimelinePoint } from "@/lib/calc/timeline";
 import { formatMoney } from "@/lib/format";
 
-type Props = {
-  points: TimelinePoint[];
-  lowestDate: string | null;
-  lowestBalance: number;
+type Point = {
+  date: string;
+  balance: number;
+  phase: "past" | "today" | "future";
 };
 
-export function BalanceSparkline({
-  points,
-  lowestDate,
-  lowestBalance,
-}: Props) {
-  if (points.length < 2) {
+type Props = {
+  series: Point[];
+};
+
+export function BalanceSparkline({ series }: Props) {
+  if (series.length < 2) {
     return (
       <p className="py-8 text-center text-xs text-[hsl(var(--muted-foreground))]">
-        Not enough timeline data yet
+        Not enough history yet
       </p>
     );
   }
 
-  const data = points.map((p) => ({
-    date: p.date.slice(5), // MM-DD
-    full: p.date,
-    balance: p.balance,
-    hasEvent: p.events.length > 0,
+  const data = series.map((p) => ({
+    ...p,
+    label: p.date.slice(5),
   }));
 
-  const lowest = data.find((d) => d.full === lowestDate);
+  const today = series.find((p) => p.phase === "today");
 
   return (
-    <div className="h-44 w-full">
+    <div className="h-48 w-full">
       <ResponsiveContainer width="100%" height="100%">
-        <AreaChart
-          data={data}
-          margin={{ top: 8, right: 8, left: 0, bottom: 0 }}
-        >
+        <AreaChart data={data} margin={{ top: 8, right: 4, left: 0, bottom: 0 }}>
           <defs>
             <linearGradient id="balFill" x1="0" y1="0" x2="0" y2="1">
-              <stop
-                offset="0%"
-                stopColor="hsl(152 25% 38%)"
-                stopOpacity={0.35}
-              />
-              <stop
-                offset="100%"
-                stopColor="hsl(152 25% 38%)"
-                stopOpacity={0.02}
-              />
+              <stop offset="0%" stopColor="rgba(255,255,255,0.45)" stopOpacity={1} />
+              <stop offset="100%" stopColor="rgba(255,255,255,0)" stopOpacity={0} />
             </linearGradient>
           </defs>
           <XAxis
-            dataKey="date"
+            dataKey="label"
             tick={{ fontSize: 10, fill: "hsl(30 8% 45%)" }}
             tickLine={false}
             axisLine={false}
+            minTickGap={32}
             interval="preserveStartEnd"
-            minTickGap={28}
           />
-          <YAxis hide domain={["dataMin - 200", "dataMax + 200"]} />
+          <YAxis hide domain={["dataMin - 150", "dataMax + 150"]} />
           <Tooltip
             contentStyle={{
-              borderRadius: 12,
+              borderRadius: 14,
               border: "1px solid hsl(40 15% 90%)",
+              background: "hsl(40 30% 99%)",
               fontSize: 12,
+              boxShadow: "0 8px 30px rgba(0,0,0,0.08)",
             }}
             formatter={(v: number) => [formatMoney(v), "Balance"]}
-            labelFormatter={(_, payload) =>
-              payload?.[0]?.payload?.full ?? ""
-            }
+            labelFormatter={(_, pl) => pl?.[0]?.payload?.date ?? ""}
           />
+          {today && (
+            <ReferenceLine
+              x={today.date.slice(5)}
+              stroke="hsl(152 25% 38%)"
+              strokeDasharray="3 4"
+              strokeOpacity={0.5}
+            />
+          )}
           <Area
             type="monotone"
             dataKey="balance"
             stroke="hsl(152 25% 38%)"
-            strokeWidth={2}
+            strokeWidth={2.25}
             fill="url(#balFill)"
-            animationDuration={600}
+            animationDuration={700}
             dot={false}
-            activeDot={{ r: 4, fill: "hsl(152 25% 38%)" }}
+            activeDot={{ r: 5, fill: "hsl(152 25% 38%)", strokeWidth: 0 }}
           />
-          {lowest && (
-            <ReferenceDot
-              x={lowest.date}
-              y={lowest.balance}
-              r={5}
-              fill="hsl(30 10% 12%)"
-              stroke="hsl(40 33% 98%)"
-              strokeWidth={2}
-            />
-          )}
         </AreaChart>
       </ResponsiveContainer>
       <p className="mt-1 text-center text-[11px] text-[hsl(var(--muted-foreground))]">
-        Lowest {formatMoney(lowestBalance)}
-        {lowestDate ? ` · ${lowestDate}` : ""}
+        Past ← today → projected
       </p>
     </div>
   );
