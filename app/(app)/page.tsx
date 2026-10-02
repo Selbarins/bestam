@@ -12,6 +12,7 @@ import { AffordForm } from "@/features/money/components/AffordForm";
 import { ExplainTimeline } from "@/features/money/components/ExplainTimeline";
 import { ReconcileForm } from "@/features/accounts/components/ReconcileForm";
 import { UndoButtons } from "@/features/money/components/UndoButtons";
+import { BalanceSparkline } from "@/features/money/components/BalanceSparkline";
 
 async function DashboardNumbers() {
   const data = await loadSafeToSpendV2();
@@ -99,6 +100,22 @@ async function DashboardNumbers() {
             Received
           </p>
         </Link>
+      </section>
+
+            <section className="rounded-2xl border border-[hsl(var(--border))] bg-[hsl(var(--card))] p-4 shadow-sm">
+        <div className="flex items-baseline justify-between">
+          <p className="text-sm font-medium">Until payday</p>
+          <p className="text-xs text-[hsl(var(--muted-foreground))]">
+            Projected balance
+          </p>
+        </div>
+        <div className="mt-2">
+          <BalanceSparkline
+            points={safe.timeline.points}
+            lowestDate={safe.lowestDate}
+            lowestBalance={safe.lowestBalance}
+          />
+        </div>
       </section>
 
       {/* Pace + runway — compact */}
