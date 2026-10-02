@@ -5,8 +5,26 @@ import { buildTimelineEvents } from "@/lib/calc/build-events";
 import { calcSafeToSpendV2 } from "@/lib/calc/safe-to-spend-v2";
 import { getAccounts } from "@/features/accounts/queries";
 import { getSettings } from "@/features/settings/queries";
-import { getGoalReservesMad } from "@/features/goals/actions";
 import { buildGoalEvents, detectGoalConflicts } from "@/lib/calc/goal-events";
+
+export type ExpenseRow = {
+  id?: string;
+  amount: number | string;
+  rate_to_mad?: number | string | null;
+  status: string;
+  spent_on?: string | null;
+  note?: string | null;
+  account_id?: string | null;
+  category_id?: string | null;
+  bucket?: string | null;
+};
+
+export type QuickChip = {
+  note: string;
+  amount: number;
+  category_id: string | null;
+  count: number;
+};
 
 export async function loadSafeToSpendV2() {
   const supabase = await createClient();
@@ -14,7 +32,7 @@ export async function loadSafeToSpendV2() {
 
   const [
     { data: income },
-    { data: expenses },
+    { data: expensesRaw },
     { data: cart },
     { data: recurring },
     { data: occurrences },
@@ -31,8 +49,10 @@ export async function loadSafeToSpendV2() {
     supabase
       .from("expenses")
       .select(
-        "id, amount, rate_to_mad, status, spent_on, note, account_id"
-      ),
+        "id, amount, rate_to_mad, status, spent_on, note, account_id, category_id, categories(bucket)"
+      )
+      .order("spent_on", { ascending: false })
+      .limit(400),
     supabase
       .from("cart_items")
       .select("id, name, estimated_amount, rate_to_mad"),
@@ -52,25 +72,37 @@ export async function loadSafeToSpendV2() {
     getSettings(),
   ]);
 
+  const expenses: ExpenseRow[] = (expensesRaw ?? []).map((row) => {
+    const cat = row.categories as
+      | { bucket?: string }
+      | { bucket?: string }[]
+      | null;
+    let bucket: string | null = null;
+    if (Array.isArray(cat)) bucket = cat[0]?.bucket ?? null;
+    else if (cat) bucket = cat.bucket ?? null;
+    return {
+      id: row.id,
+      amount: row.amount,
+      rate_to_mad: row.rate_to_mad,
+      status: row.status,
+      spent_on: row.spent_on,
+      note: row.note,
+      account_id: row.account_id,
+      category_id: row.category_id,
+      bucket,
+    };
+  });
+
   let startBalance = 0;
   for (const a of accounts) {
     if (!a.include_in_safe_to_spend) continue;
-    startBalance += calcBalance(
-      income ?? [],
-      expenses ?? [],
-      adjustments ?? [],
-      {
-        accountId: a.id,
-        includeUnassigned: a.type === "bank",
-      }
-    );
+    startBalance += calcBalance(income ?? [], expenses, adjustments ?? [], {
+      accountId: a.id,
+      includeUnassigned: a.type === "bank",
+    });
   }
   if (accounts.length === 0) {
-    startBalance = calcBalance(
-      income ?? [],
-      expenses ?? [],
-      adjustments ?? []
-    );
+    startBalance = calcBalance(income ?? [], expenses, adjustments ?? []);
   }
 
   const lastSalary = (income ?? [])
@@ -89,11 +121,11 @@ export async function loadSafeToSpendV2() {
 
   const baseEvents = buildTimelineEvents({
     income: income ?? [],
-    expenses: expenses ?? [],
+    expenses,
     recurring: recurring ?? [],
     occurrences: occurrences ?? [],
     cart: cart ?? [],
-    goalReservesMad: 0, // goals come from buildGoalEvents now
+    goalReservesMad: 0,
     endDate: cycle.cycleEnd,
   });
 
@@ -106,6 +138,14 @@ export async function loadSafeToSpendV2() {
     safetyBuffer: settings.safety_buffer,
   });
 
+  // Latest actuals for home
+  const latest = expenses
+    .filter((e) => e.status === "actual")
+    .slice(0, 5);
+
+  // Quick chips: most common note+amount in last ~90 days of actuals
+  const chips = buildQuickChips(expenses);
+
   return {
     safe,
     cycle,
@@ -114,9 +154,44 @@ export async function loadSafeToSpendV2() {
     startBalance,
     events,
     income: income ?? [],
-    expenses: expenses ?? [],
+    expenses,
     adjustments: adjustments ?? [],
     goals: goals ?? [],
     conflicts,
+    latest,
+    chips,
   };
+}
+
+function buildQuickChips(expenses: ExpenseRow[]): QuickChip[] {
+  const cutoff = new Date();
+  cutoff.setDate(cutoff.getDate() - 90);
+  const cut = cutoff.toISOString().slice(0, 10);
+
+  const map = new Map<string, QuickChip>();
+
+  for (const e of expenses) {
+    if (e.status !== "actual") continue;
+    if (!e.spent_on || e.spent_on < cut) continue;
+    const note = (e.note || "").trim();
+    if (!note) continue;
+    const amount = Math.round(Number(e.amount) * 100) / 100;
+    if (!(amount > 0)) continue;
+    const key = `${note.toLowerCase()}|${amount}`;
+    const prev = map.get(key);
+    if (prev) {
+      prev.count += 1;
+    } else {
+      map.set(key, {
+        note,
+        amount,
+        category_id: e.category_id ?? null,
+        count: 1,
+      });
+    }
+  }
+
+  return [...map.values()]
+    .sort((a, b) => b.count - a.count)
+    .slice(0, 4);
 }
