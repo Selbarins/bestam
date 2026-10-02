@@ -61,19 +61,7 @@ export async function previewPurchase(input: {
     beforeDiscretionary: before.discretionary,
     afterDiscretionary: after.discretionary,
     status,
-    coach: templateAffordCoach({
-      amount,
-      label,
-      date,
-      beforeDaily: before.daily,
-      afterDaily: after.daily,
-      beforeLowest: before.lowestBalance,
-      afterLowest: after.lowestBalance,
-      beforeDiscretionary: before.discretionary,
-      afterDiscretionary: after.discretionary,
-      status,
-      coach: null,
-    }),
+    coach: templateAffordCoach({ status }),
   };
 
   // Optional AI rewrite (never blocks correctness)
