@@ -5,14 +5,14 @@ import { calcRunway } from "@/lib/calc/runway";
 import { calcSpendingPace } from "@/lib/calc/pace";
 import { formatMoney } from "@/lib/format";
 import { loadSafeToSpendV2 } from "@/features/money/safe-to-spend-data";
-import { getExpensesWithBucket } from "@/features/money/expenses-with-bucket";
 import { WalletHero } from "@/features/money/components/WalletHero";
 import { HomeSection } from "@/features/money/components/HomeSection";
+import { BalanceSparkline } from "@/features/money/components/BalanceSparkline";
+import { QuickSpendChips } from "@/features/money/components/QuickSpendChips";
 import { AffordForm } from "@/features/money/components/AffordForm";
 import { ExplainTimeline } from "@/features/money/components/ExplainTimeline";
 import { ReconcileForm } from "@/features/accounts/components/ReconcileForm";
 import { UndoButtons } from "@/features/money/components/UndoButtons";
-import { BalanceSparkline } from "@/features/money/components/BalanceSparkline";
 
 async function DashboardNumbers() {
   const data = await loadSafeToSpendV2();
@@ -24,6 +24,8 @@ async function DashboardNumbers() {
     expenses,
     adjustments,
     conflicts = [],
+    latest = [],
+    chips = [],
   } = data;
 
   const bookByAccount: Record<string, number> = {};
@@ -35,8 +37,9 @@ async function DashboardNumbers() {
   }
 
   const overallBalance = calcBalance(income, expenses, adjustments);
-  const expensesForRunway = await getExpensesWithBucket();
-  const runway = calcRunway(safe.startBalance, expensesForRunway);
+
+  // No second network call — expenses already include bucket
+  const runway = calcRunway(safe.startBalance, expenses);
 
   const spentInCycle = expenses
     .filter(
@@ -80,45 +83,21 @@ async function DashboardNumbers() {
         overallBalance={overallBalance}
       />
 
-      {/* Quick actions */}
-      <section className="grid grid-cols-2 gap-3">
-        <Link
-          href="/money/expenses"
-          className="rounded-2xl border border-[hsl(var(--border))] bg-[hsl(var(--card))] p-4 shadow-sm active:scale-[0.98] transition"
-        >
-          <p className="text-sm font-medium">Add expense</p>
-          <p className="mt-0.5 text-xs text-[hsl(var(--muted-foreground))]">
-            Two-tap capture
-          </p>
-        </Link>
-        <Link
-          href="/money/income"
-          className="rounded-2xl border border-[hsl(var(--border))] bg-[hsl(var(--card))] p-4 shadow-sm active:scale-[0.98] transition"
-        >
-          <p className="text-sm font-medium">Mark salary</p>
-          <p className="mt-0.5 text-xs text-[hsl(var(--muted-foreground))]">
-            Received
-          </p>
-        </Link>
+      {/* Quick spend */}
+      <section className="rounded-2xl border border-[hsl(var(--border))] bg-[hsl(var(--card))] p-4 shadow-sm">
+        <div className="flex items-center justify-between mb-3">
+          <p className="text-sm font-medium">Quick spend</p>
+          <Link
+            href="/money/expenses"
+            className="text-xs text-[hsl(var(--muted-foreground))]"
+          >
+            More
+          </Link>
+        </div>
+        <QuickSpendChips chips={chips} />
       </section>
 
-            <section className="rounded-2xl border border-[hsl(var(--border))] bg-[hsl(var(--card))] p-4 shadow-sm">
-        <div className="flex items-baseline justify-between">
-          <p className="text-sm font-medium">Until payday</p>
-          <p className="text-xs text-[hsl(var(--muted-foreground))]">
-            Projected balance
-          </p>
-        </div>
-        <div className="mt-2">
-          <BalanceSparkline
-            points={safe.timeline.points}
-            lowestDate={safe.lowestDate}
-            lowestBalance={safe.lowestBalance}
-          />
-        </div>
-      </section>
-
-      {/* Pace + runway — compact */}
+      {/* Pace + runway compact */}
       <section className="rounded-2xl border border-[hsl(var(--border))] bg-[hsl(var(--card))] p-4 shadow-sm space-y-3">
         <div className="flex items-center justify-between gap-2">
           <div>
@@ -130,11 +109,7 @@ async function DashboardNumbers() {
             </p>
           </div>
           <p className="text-sm font-semibold tabular-nums">
-            {Math.round(pace.usedRatio * 100)}%
-            <span className="font-normal text-[hsl(var(--muted-foreground))]">
-              {" "}
-              used
-            </span>
+            {Math.round(pace.usedRatio * 100)}% used
           </p>
         </div>
         <div className="h-1.5 overflow-hidden rounded-full bg-[hsl(var(--muted))]">
@@ -151,7 +126,7 @@ async function DashboardNumbers() {
         </div>
         <div className="flex justify-between text-xs text-[hsl(var(--muted-foreground))]">
           <span>
-            Runway lifestyle{" "}
+            Lifestyle{" "}
             <span className="font-medium text-[hsl(var(--foreground))] tabular-nums">
               {runway.lifestyleMonths >= 99
                 ? "—"
@@ -166,6 +141,23 @@ async function DashboardNumbers() {
                 : `${runway.essentialsMonths} mo`}
             </span>
           </span>
+        </div>
+      </section>
+
+      {/* Graph — component already exists */}
+      <section className="rounded-2xl border border-[hsl(var(--border))] bg-[hsl(var(--card))] p-4 shadow-sm">
+        <div className="flex items-baseline justify-between">
+          <p className="text-sm font-medium">Until payday</p>
+          <p className="text-xs text-[hsl(var(--muted-foreground))]">
+            Projected balance
+          </p>
+        </div>
+        <div className="mt-2">
+          <BalanceSparkline
+            points={safe.timeline.points}
+            lowestDate={safe.lowestDate}
+            lowestBalance={safe.lowestBalance}
+          />
         </div>
       </section>
 
@@ -184,15 +176,7 @@ async function DashboardNumbers() {
 
       {upcoming.length > 0 && (
         <section className="rounded-2xl border border-[hsl(var(--border))] bg-[hsl(var(--card))] p-4 shadow-sm">
-          <div className="flex items-center justify-between">
-            <p className="text-sm font-medium">Upcoming</p>
-            <Link
-              href="/money"
-              className="text-xs text-[hsl(var(--muted-foreground))]"
-            >
-              Money
-            </Link>
-          </div>
+          <p className="text-sm font-medium">Upcoming</p>
           <ul className="mt-3 space-y-2.5">
             {upcoming.map((p) => (
               <li key={p.date} className="text-sm">
@@ -213,10 +197,34 @@ async function DashboardNumbers() {
         </section>
       )}
 
+      {latest.length > 0 && (
+        <section className="rounded-2xl border border-[hsl(var(--border))] bg-[hsl(var(--card))] p-4 shadow-sm">
+          <p className="text-sm font-medium">Latest</p>
+          <ul className="mt-3 space-y-2">
+            {latest.map((e) => (
+              <li
+                key={e.id}
+                className="flex items-center justify-between text-sm"
+              >
+                <span className="truncate text-[hsl(var(--muted-foreground))]">
+                  {e.note || "Expense"}
+                  {e.spent_on ? (
+                    <span className="ml-1 text-[10px]">{e.spent_on}</span>
+                  ) : null}
+                </span>
+                <span className="tabular-nums font-medium shrink-0">
+                  −{formatMoney(Number(e.amount))}
+                </span>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+
       <section className="rounded-2xl border border-[hsl(var(--border))] bg-[hsl(var(--card))] p-4 shadow-sm">
         <p className="text-sm font-medium">Can I afford this?</p>
         <p className="mt-0.5 mb-3 text-xs text-[hsl(var(--muted-foreground))]">
-          Preview impact before you buy — nothing is saved.
+          Preview only — nothing saved until you log an expense.
         </p>
         <AffordForm />
       </section>
@@ -230,12 +238,12 @@ async function DashboardNumbers() {
 
       <HomeSection
         title="Reconcile"
-        subtitle="Match book balance to the real world"
+        subtitle="Match book to the real world"
       >
         <ReconcileForm accounts={accounts} bookByAccount={bookByAccount} />
       </HomeSection>
 
-      <HomeSection title="Undo" subtitle="Last expense or last reconcile">
+      <HomeSection title="Undo" subtitle="Last expense or reconcile">
         <UndoButtons />
       </HomeSection>
     </>
@@ -245,12 +253,9 @@ async function DashboardNumbers() {
 function NumbersSkeleton() {
   return (
     <div className="space-y-4">
-      <div className="flex gap-2">
-        <div className="h-14 w-28 animate-pulse rounded-xl bg-[hsl(var(--muted))]" />
-        <div className="h-14 w-28 animate-pulse rounded-xl bg-[hsl(var(--muted))]" />
-      </div>
-      <div className="h-40 animate-pulse rounded-2xl bg-[hsl(var(--muted))]" />
-      <div className="h-24 animate-pulse rounded-2xl bg-[hsl(var(--muted))]" />
+      <div className="h-36 animate-pulse rounded-2xl bg-[hsl(var(--muted))]" />
+      <div className="h-16 animate-pulse rounded-2xl bg-[hsl(var(--muted))]" />
+      <div className="h-44 animate-pulse rounded-2xl bg-[hsl(var(--muted))]" />
     </div>
   );
 }
