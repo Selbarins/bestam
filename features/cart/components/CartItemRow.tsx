@@ -48,7 +48,7 @@ export function CartItemRow({
 
   return (
     <div
-      className={`rounded-2xl border border-[hsl(var(--border))] bg-[hsl(var(--card))] px-4 py-3.5 transition-all duration-200 ${
+      className={`glass rounded-2xl px-4 py-3.5 transition ${
         isPending ? "opacity-50" : ""
       }`}
     >
@@ -69,7 +69,7 @@ export function CartItemRow({
           type="button"
           onClick={handleBought}
           disabled={isPending}
-          className="flex-1 rounded-xl bg-[hsl(var(--primary))] py-2 text-xs font-medium text-[hsl(var(--primary-foreground))] transition-all hover:brightness-110 disabled:opacity-50"
+          className="glass-btn flex-1 rounded-xl py-2 text-xs font-medium disabled:opacity-50"
         >
           Mark bought
         </button>
