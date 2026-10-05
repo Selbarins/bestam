@@ -38,6 +38,18 @@ async function DashboardNumbers() {
       0
     );
 
+    const incomeInCycle = (income ?? [])
+    .filter(
+      (i) =>
+        i.received_at &&
+        String(i.received_at).slice(0, 10) >= cycle.cycleStart &&
+        String(i.received_at).slice(0, 10) <= cycle.cycleEnd
+    )
+    .reduce(
+      (s, i) => s + Number(i.amount) * Number(i.rate_to_mad ?? 1),
+      0
+    );
+
   const pace = calcSpendingPace({
     spentInCycle,
     incomeInCycle,
@@ -45,7 +57,7 @@ async function DashboardNumbers() {
     daysInCycle: cycle.payCycleDays,
   });
 
-    const coachLine =
+  const coachLine =
     pace.incomeInCycle <= 0
       ? "Mark this cycle’s salary so pace can track income used."
       : pace.status === "ahead"
@@ -53,6 +65,8 @@ async function DashboardNumbers() {
         : pace.status === "under"
           ? `Only ${Math.round(pace.usedRatio * 100)}% of cycle income spent — ${pace.daysLeft}d left.`
           : `${Math.round(pace.usedRatio * 100)}% of income · ${Math.round(pace.timeElapsedRatio * 100)}% of time — on pace.`;
+
+  
 
     const pastTx = [
     ...expenses
@@ -106,6 +120,8 @@ async function DashboardNumbers() {
         cycleEnd={cycle.cycleEnd}
         pace={pace}
       />
+
+      <HomeCoach line={coachLine} />
 
       <section className="glass rounded-2xl p-4">
         <p className="text-sm font-medium">Balance</p>
