@@ -82,9 +82,9 @@ export function GoalCard({
 
   return (
     <div
-      className={`rounded-2xl border border-[hsl(var(--border))] bg-[hsl(var(--card))] p-5 transition-all ${
+        className={`glass rounded-2xl p-5 transition-all ${
         isPending ? "opacity-50" : ""
-      } ${cap?.over ? "border-red-300" : ""}`}
+      } ${cap?.over ? "ring-1 ring-red-300" : ""}`}
     >
       <div className="flex items-start justify-between gap-3">
         <div>
@@ -138,8 +138,7 @@ export function GoalCard({
             <button
               type="button"
               onClick={() => setShowAdd(true)}
-              className="w-full rounded-xl border border-[hsl(var(--border))] py-2 text-xs font-medium text-[hsl(var(--muted-foreground))] hover:border-[hsl(var(--primary)/0.4)]"
-            >
+              className="glass w-full rounded-xl py-2 text-xs font-medium text-[hsl(var(--muted-foreground))]"            >
               + Contribute
             </button>
           ) : (
@@ -156,8 +155,7 @@ export function GoalCard({
               <button
                 type="submit"
                 disabled={isPending}
-                className="rounded-xl bg-[hsl(var(--primary))] px-4 text-xs font-medium text-[hsl(var(--primary-foreground))] disabled:opacity-60"
-              >
+                className="glass-btn rounded-xl px-4 text-xs font-medium disabled:opacity-60"              >
                 Add
               </button>
               <button
