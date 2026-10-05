@@ -7,6 +7,7 @@ import { CategoryChart } from "@/features/insights/components/CategoryChart";
 import { CategoryLegend } from "@/features/insights/components/CategoryLegend";
 import { MonthlyChart } from "@/features/insights/components/MonthlyChart";
 import { buildWeeklyReview } from "@/lib/calc/weekly-review";
+import { ExplainButton } from "@/features/insights/components/ExplainButton";
 
 async function InsightsContent() {
   const supabase = await createClient();
@@ -38,6 +39,7 @@ async function InsightsContent() {
           ))}
         </ul>
       </section>
+      <ExplainButton />
 
       <section className="grid grid-cols-2 gap-3">
         <div className="glass rounded-2xl p-4">
