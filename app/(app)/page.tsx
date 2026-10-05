@@ -5,6 +5,7 @@ import { formatMoney } from "@/lib/format";
 import { formatWhen } from "@/lib/format-time";
 import { loadSafeToSpendV2 } from "@/features/money/safe-to-spend-data";
 import { WalletHero } from "@/features/money/components/WalletHero";
+import { HomeCoach } from "@/features/money/components/HomeCoach";
 import { BalanceSparkline } from "@/features/money/components/BalanceSparkline";
 import { AffordForm } from "@/features/money/components/AffordForm";
 import { buildBalanceSeries } from "@/lib/calc/balance-history";
