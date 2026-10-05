@@ -40,9 +40,7 @@ export function RecurringRow({
 
   return (
     <div
-      className={`rounded-2xl border border-[hsl(var(--border))] bg-[hsl(var(--card))] p-4 ${
-        !active ? "opacity-50" : ""
-      }`}
+      className={`glass rounded-2xl p-4 ${!active ? "opacity-50" : ""}`}
     >
       <div className="flex items-start justify-between gap-3">
         <div>
