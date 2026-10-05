@@ -2,10 +2,11 @@ import { roundMoney } from "./money";
 
 export type PaceResult = {
   spentInCycle: number;
-  startBalance: number;
-  /** 0–2: share of spendable balance already spent this cycle */
+  /** Received income in this pay cycle (denominator) */
+  incomeInCycle: number;
+  /** spent / income (capped at 2 for UI) */
   usedRatio: number;
-  /** 0–1: share of pay cycle elapsed */
+  /** days elapsed / days in cycle */
   timeElapsedRatio: number;
   paceDelta: number;
   daysElapsed: number;
@@ -15,13 +16,15 @@ export type PaceResult = {
 };
 
 /**
- * Pace = cash burn vs time.
- * usedRatio  = spentInCycle / startBalance
- * timeRatio  = daysElapsed / daysInCycle
+ * Pace = share of cycle income already spent, vs share of cycle time elapsed.
+ * usedRatio = spentInCycle / incomeInCycle
+ * timeRatio = daysElapsed / daysInCycle
+ *
+ * Example: 50% of income spent but only 30% of cycle elapsed → ahead.
  */
 export function calcSpendingPace(input: {
   spentInCycle: number;
-  startBalance: number;
+  incomeInCycle: number;
   daysLeft: number;
   daysInCycle: number;
 }): PaceResult {
@@ -29,11 +32,11 @@ export function calcSpendingPace(input: {
   const daysLeft = Math.max(0, Math.round(input.daysLeft));
   const daysElapsed = Math.max(0, daysInCycle - daysLeft);
 
-  const startBalance = roundMoney(Math.max(0, input.startBalance));
+  const income = roundMoney(Math.max(0, input.incomeInCycle));
   const spent = roundMoney(Math.max(0, input.spentInCycle));
 
   const usedRatio =
-    startBalance > 0 ? Math.min(2, spent / startBalance) : spent > 0 ? 1 : 0;
+    income > 0 ? Math.min(2, spent / income) : spent > 0 ? 1 : 0;
   const timeElapsedRatio = daysElapsed / daysInCycle;
   const paceDelta = usedRatio - timeElapsedRatio;
 
@@ -43,7 +46,7 @@ export function calcSpendingPace(input: {
 
   return {
     spentInCycle: spent,
-    startBalance,
+    incomeInCycle: income,
     usedRatio,
     timeElapsedRatio,
     paceDelta,
