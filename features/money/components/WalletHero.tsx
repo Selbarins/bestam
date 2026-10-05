@@ -23,10 +23,10 @@ export function WalletHero({ safe, cycleStart, cycleEnd, pace }: Props) {
 
   const paceLabel =
     pace.status === "ahead"
-      ? "Burning cash faster than the clock"
+      ? "Spending income faster than the clock"
       : pace.status === "under"
-        ? "Cash lasting longer than the clock"
-        : "Cash and calendar in sync";
+        ? "Income lasting longer than the clock"
+        : "Income and calendar in sync";
 
   return (
     <section
@@ -118,7 +118,7 @@ export function WalletHero({ safe, cycleStart, cycleEnd, pace }: Props) {
           </div>
           <div className="mt-2 flex justify-between text-[11px] text-white/80">
             <span>
-              Cash used{" "}
+              Of income{" "}
               <strong className="text-white tabular-nums">
                 {Math.round(pace.usedRatio * 100)}%
               </strong>
