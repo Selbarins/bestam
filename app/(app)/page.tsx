@@ -45,6 +45,15 @@ async function DashboardNumbers() {
     daysInCycle: cycle.payCycleDays,
   });
 
+    const coachLine =
+    pace.incomeInCycle <= 0
+      ? "Mark this cycle’s salary so pace can track income used."
+      : pace.status === "ahead"
+        ? `You’ve used ${Math.round(pace.usedRatio * 100)}% of cycle income with ${pace.daysLeft}d left.`
+        : pace.status === "under"
+          ? `Only ${Math.round(pace.usedRatio * 100)}% of cycle income spent — ${pace.daysLeft}d left.`
+          : `${Math.round(pace.usedRatio * 100)}% of income · ${Math.round(pace.timeElapsedRatio * 100)}% of time — on pace.`;
+
     const pastTx = [
     ...expenses
       .filter((e) => e.status === "actual" && e.spent_on)
