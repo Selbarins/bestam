@@ -2,8 +2,7 @@
 
 import { useEffect, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { createExpense, createExpenseData } from "../actions";
-import { parseExpenseText, matchCategory } from "@/lib/nl/parse-expense";
+import { createExpenseData } from "../actions";
 import {
   enqueueExpense,
   getQueue,
@@ -22,6 +21,13 @@ type AccountOption = {
   type: string;
 };
 
+/** Accept "45.6" or "45,6" */
+function parseAmount(raw: string): number {
+  const cleaned = raw.trim().replace(/\s/g, "").replace(",", ".");
+  const n = Number(cleaned);
+  return Number.isFinite(n) ? n : NaN;
+}
+
 export function ExpenseForm({
   categories,
   accounts = [],
@@ -32,7 +38,6 @@ export function ExpenseForm({
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
-  const [nl, setNl] = useState("");
   const [amount, setAmount] = useState("");
   const [note, setNote] = useState("");
   const [categoryId, setCategoryId] = useState("");
@@ -41,6 +46,15 @@ export function ExpenseForm({
   );
   const [queued, setQueued] = useState(0);
   const [offline, setOffline] = useState(false);
+  const [savedFlash, setSavedFlash] = useState(false);
+
+  function resetForm() {
+    setAmount("");
+    setNote("");
+    setCategoryId("");
+    setError(null);
+    // keep accountId — usually same wallet
+  }
 
   useEffect(() => {
     setQueued(getQueue().length);
@@ -78,68 +92,61 @@ export function ExpenseForm({
     };
   }, [router]);
 
-  function applyNl(text: string) {
-    setNl(text);
-    const parsed = parseExpenseText(text);
-    if (!parsed) return;
-    setAmount(String(parsed.amount));
-    if (parsed.note) setNote(parsed.note);
-    const matched = matchCategory(parsed.tokens, categories);
-    if (matched) setCategoryId(matched);
-  }
-
-  function handleSubmit(formData: FormData) {
+  function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
     setError(null);
+    setSavedFlash(false);
 
-    const amt = Number(formData.get("amount"));
-    const cat = String(formData.get("category_id") || "") || null;
-    const n = String(formData.get("note") || "").trim() || null;
-    const acc = String(formData.get("account_id") || "") || null;
-
-    if (!navigator.onLine) {
-      enqueueExpense({ amount: amt, category_id: cat, note: n });
-      setQueued(getQueue().length);
-      setError(null);
-      router.push("/");
+    const amt = parseAmount(amount);
+    if (!Number.isFinite(amt) || amt <= 0) {
+      setError("Enter a valid amount (use . or ,)");
       return;
     }
 
-    // Ensure account_id is in the FormData the server action reads
-    if (acc) formData.set("account_id", acc);
+    const cat = categoryId || null;
+    const n = note.trim() || null;
+    const acc = accountId || null;
+
+    if (typeof navigator !== "undefined" && !navigator.onLine) {
+      enqueueExpense({ amount: amt, category_id: cat, note: n });
+      setQueued(getQueue().length);
+      resetForm();
+      setSavedFlash(true);
+      return;
+    }
 
     startTransition(async () => {
-      const result = await createExpense(formData);
+      const result = await createExpenseData({
+        amount: amt,
+        category_id: cat,
+        note: n,
+        account_id: acc,
+      });
       if (result?.error) {
         setError(result.error);
         return;
       }
-      router.push("/");
+      resetForm();
+      setSavedFlash(true);
       router.refresh();
     });
   }
 
   return (
-    <form action={handleSubmit} className="space-y-8">
+    <form onSubmit={handleSubmit} className="space-y-6">
       {(offline || queued > 0) && (
-        <p className="rounded-xl border border-[hsl(var(--border))] bg-[hsl(var(--muted))] px-3 py-2 text-xs text-[hsl(var(--muted-foreground))]">
+        <p className="glass rounded-xl px-3 py-2 text-xs text-[hsl(var(--muted-foreground))]">
           {offline
             ? "Offline — expenses will sync when you’re back online"
             : `${queued} queued expense${queued > 1 ? "s" : ""} syncing…`}
         </p>
       )}
 
-      <div>
-        <label className="block text-sm font-medium text-[hsl(var(--muted-foreground))]">
-          Quick type
-        </label>
-        <input
-          type="text"
-          value={nl}
-          onChange={(e) => applyNl(e.target.value)}
-          placeholder='e.g. "coffee 25" or "45 groceries"'
-          className="mt-2 w-full rounded-xl border border-[hsl(var(--border))] bg-[hsl(var(--card))] px-4 py-3 text-sm outline-none focus:border-[hsl(var(--primary)/0.5)]"
-        />
-      </div>
+      {savedFlash && (
+        <p className="rounded-xl bg-[hsl(var(--accent))] px-3 py-2 text-xs text-[hsl(var(--accent-foreground))]">
+          Saved — add another or go back
+        </p>
+      )}
 
       <div>
         <label
@@ -149,18 +156,25 @@ export function ExpenseForm({
           Amount
         </label>
         <div className="relative mt-2">
+          {/* text + inputMode decimal: iOS shows decimal pad; accepts , or . */}
           <input
             id="amount"
             name="amount"
-            type="number"
+            type="text"
             inputMode="decimal"
-            step="0.01"
-            min="0"
+            autoComplete="off"
+            enterKeyHint="done"
             required
             value={amount}
-            onChange={(e) => setAmount(e.target.value)}
+            onChange={(e) => {
+              // Allow digits, one separator (. or ,), and optional spaces
+              const v = e.target.value;
+              if (v === "" || /^[\d\s]*[.,]?[\d\s]*$/.test(v)) {
+                setAmount(v);
+              }
+            }}
             placeholder="0"
-            className="w-full border-0 bg-transparent text-5xl font-semibold tracking-tight tabular-nums text-[hsl(var(--foreground))] outline-none transition-colors placeholder:text-[hsl(var(--muted-foreground)/0.35)] focus:text-[hsl(var(--primary))]"
+            className="w-full border-0 bg-transparent text-5xl font-semibold tracking-tight tabular-nums text-[hsl(var(--foreground))] outline-none placeholder:text-[hsl(var(--muted-foreground)/0.35)] focus:text-[hsl(var(--primary))]"
           />
           <span className="absolute right-0 top-1/2 -translate-y-1/2 text-sm text-[hsl(var(--muted-foreground))]">
             MAD
@@ -177,10 +191,10 @@ export function ExpenseForm({
             {accounts.map((a) => (
               <label
                 key={a.id}
-                className={`cursor-pointer rounded-xl border px-3 py-2 text-sm transition-all duration-150 ${
+                className={`cursor-pointer rounded-xl px-3 py-2 text-sm transition ${
                   accountId === a.id
-                    ? "border-[hsl(var(--primary))] bg-[hsl(var(--accent))] shadow-sm"
-                    : "border-[hsl(var(--border))] bg-[hsl(var(--card))] hover:border-[hsl(var(--primary)/0.4)]"
+                    ? "border border-[hsl(var(--primary))] bg-[hsl(var(--accent))]"
+                    : "glass"
                 }`}
               >
                 <input
@@ -198,7 +212,7 @@ export function ExpenseForm({
         </div>
       )}
 
-            <div className="space-y-4">
+      <div className="space-y-4">
         <p className="text-sm font-medium text-[hsl(var(--muted-foreground))]">
           Category
         </p>
@@ -228,10 +242,10 @@ export function ExpenseForm({
                 {items.map((cat) => (
                   <label
                     key={cat.id}
-                    className={`cursor-pointer rounded-xl border px-3 py-2.5 text-sm transition-all duration-150 ${
+                    className={`cursor-pointer rounded-xl px-3 py-2.5 text-sm transition ${
                       categoryId === cat.id
-                        ? "border-[hsl(var(--primary))] bg-[hsl(var(--accent))] shadow-sm"
-                        : "glass hover:border-[hsl(var(--primary)/0.4)]"
+                        ? "border border-[hsl(var(--primary))] bg-[hsl(var(--accent))]"
+                        : "glass"
                     }`}
                   >
                     <input
@@ -265,7 +279,7 @@ export function ExpenseForm({
           value={note}
           onChange={(e) => setNote(e.target.value)}
           placeholder="Coffee, lunch…"
-          className="mt-2 w-full rounded-xl border border-[hsl(var(--border))] bg-[hsl(var(--card))] px-4 py-3 text-sm outline-none transition-all duration-150 focus:border-[hsl(var(--primary)/0.5)] focus:shadow-sm"
+          className="glass mt-2 w-full rounded-xl px-4 py-3 text-sm outline-none"
         />
       </div>
 
