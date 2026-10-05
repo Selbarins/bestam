@@ -13,7 +13,11 @@ function revalidateExpenses() {
 }
 
 export async function createExpense(formData: FormData) {
-  const amount = Number(formData.get("amount"));
+  const raw = String(formData.get("amount") ?? "")
+    .trim()
+    .replace(/\s/g, "")
+    .replace(",", ".");
+  const amount = Number(raw);
   const category_id = String(formData.get("category_id") || "") || null;
   const note = String(formData.get("note") || "").trim() || null;
   const account_id = String(formData.get("account_id") || "") || null;
