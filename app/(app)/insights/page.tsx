@@ -14,7 +14,9 @@ async function InsightsContent() {
   const [{ data: expenses }, { data: income }] = await Promise.all([
     supabase
       .from("expenses")
-      .select("amount, rate_to_mad, status, spent_on, categories(name, bucket)"),
+      .select(
+        "amount, rate_to_mad, status, spent_on, note, categories(name, bucket)"
+      ),
     supabase.from("income").select("amount, rate_to_mad, received_at"),
   ]);
 
@@ -66,6 +68,46 @@ async function InsightsContent() {
         </p>
       </div>
 
+            {insights.spendRate != null && (
+        <div className="glass rounded-2xl p-4">
+          <p className="text-xs text-[hsl(var(--muted-foreground))]">
+            Spent of income this month
+          </p>
+          <p className="mt-1 text-2xl font-semibold tabular-nums">
+            {insights.spendRate}%
+          </p>
+        </div>
+      )}
+
+      {insights.byBucket.length > 0 && (
+        <section className="glass rounded-2xl p-4">
+          <h2 className="text-sm font-medium">By bucket</h2>
+          <ul className="mt-3 space-y-2">
+            {insights.byBucket.map((b) => {
+              const pct =
+                insights.spentThisMonth > 0
+                  ? Math.round((b.value / insights.spentThisMonth) * 100)
+                  : 0;
+              return (
+                <li key={b.name}>
+                  <div className="flex justify-between text-sm">
+                    <span className="capitalize">{b.name}</span>
+                    <span className="tabular-nums font-medium">
+                      {formatMoney(b.value)} · {pct}%
+                    </span>
+                  </div>
+                  <div className="mt-1 h-1.5 overflow-hidden rounded-full bg-black/5">
+                    <div
+                      className="h-full rounded-full bg-[hsl(var(--primary))]"
+                      style={{ width: `${pct}%` }}
+                    />
+                  </div>
+                </li>
+              );
+            })}
+          </ul>
+        </section>
+      )}
       <section className="glass rounded-2xl p-4">
         <h2 className="text-sm font-medium">By category</h2>
         <CategoryChart data={insights.byCategory} />
@@ -112,6 +154,38 @@ async function InsightsContent() {
             ))}
           </ul>
         )}
+      </section>
+            {insights.topNotes.length > 0 && (
+        <section className="glass rounded-2xl p-4">
+          <h2 className="text-sm font-medium">Top this month</h2>
+          <ul className="mt-3 space-y-2">
+            {insights.topNotes.map((r) => (
+              <li
+                key={r.name}
+                className="flex items-center justify-between gap-3 text-sm"
+              >
+                <span className="truncate">{r.name}</span>
+                <span className="shrink-0 tabular-nums font-medium">
+                  {formatMoney(r.value)}
+                </span>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+
+      <section className="glass rounded-2xl p-4">
+        <h2 className="text-sm font-medium">Average by weekday</h2>
+        <ul className="mt-3 grid grid-cols-7 gap-1 text-center">
+          {insights.byWeekday.map((d) => (
+            <li key={d.label} className="text-[10px]">
+              <p className="text-[hsl(var(--muted-foreground))]">{d.label}</p>
+              <p className="mt-1 tabular-nums font-medium text-xs">
+                {d.value > 0 ? Math.round(d.value) : "—"}
+              </p>
+            </li>
+          ))}
+        </ul>
       </section>
     </div>
   );
