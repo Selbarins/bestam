@@ -38,17 +38,6 @@ async function DashboardNumbers() {
       0
     );
 
-    const incomeInCycle = (income ?? [])
-    .filter(
-      (i) =>
-        i.received_at &&
-        String(i.received_at).slice(0, 10) >= cycle.cycleStart &&
-        String(i.received_at).slice(0, 10) <= cycle.cycleEnd
-    )
-    .reduce(
-      (s, i) => s + Number(i.amount) * Number(i.rate_to_mad ?? 1),
-      0
-    );
 
   const pace = calcSpendingPace({
     spentInCycle,
