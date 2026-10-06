@@ -122,25 +122,45 @@ export function calcInsights(
     total: roundMoney(weekdaySum[i]),
   }));
 
-  // Last 6 months
-  const monthlyMap = new Map<string, number>();
+    // Last 6 months: spend + income
+  const monthlySpent = new Map<string, number>();
+  const monthlyIncome = new Map<string, number>();
   for (let i = 5; i >= 0; i--) {
     const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
-    monthlyMap.set(monthKey(d), 0);
+    const k = monthKey(d);
+    monthlySpent.set(k, 0);
+    monthlyIncome.set(k, 0);
   }
   for (const e of actualExpenses) {
     const key = e.spent_on?.slice(0, 7);
-    if (key && monthlyMap.has(key)) {
-      monthlyMap.set(
+    if (key && monthlySpent.has(key)) {
+      monthlySpent.set(
         key,
-        (monthlyMap.get(key) || 0) + toMad(e.amount, e.rate_to_mad)
+        (monthlySpent.get(key) || 0) + toMad(e.amount, e.rate_to_mad)
       );
     }
   }
-  const monthly = [...monthlyMap.entries()].map(([month, value]) => ({
+  for (const i of income) {
+    const key = i.received_at?.slice(0, 7);
+    if (key && monthlyIncome.has(key)) {
+      monthlyIncome.set(
+        key,
+        (monthlyIncome.get(key) || 0) + toMad(i.amount, i.rate_to_mad)
+      );
+    }
+  }
+  const monthly = [...monthlySpent.keys()].map((month) => ({
     month,
     label: new Date(month + "-01").toLocaleDateString("en", { month: "short" }),
-    value: roundMoney(value),
+    spent: roundMoney(monthlySpent.get(month) || 0),
+    income: roundMoney(monthlyIncome.get(month) || 0),
+  }));
+
+  // Keep simple monthly spent for any old callers
+  const monthlySpentOnly = monthly.map((m) => ({
+    month: m.month,
+    label: m.label,
+    value: m.spent,
   }));
 
   const spendRate =
@@ -157,6 +177,7 @@ export function calcInsights(
     byBucket,
     topNotes,
     byWeekday,
-    monthly,
+    monthly: monthlySpentOnly,
+    monthlyPairs: monthly,
   };
 }
