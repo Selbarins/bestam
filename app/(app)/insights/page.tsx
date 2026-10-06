@@ -8,6 +8,7 @@ import { CategoryLegend } from "@/features/insights/components/CategoryLegend";
 import { MonthlyChart } from "@/features/insights/components/MonthlyChart";
 import { buildWeeklyReview } from "@/lib/calc/weekly-review";
 import { ExplainButton } from "@/features/insights/components/ExplainButton";
+import { SpendBalanceChart } from "@/features/insights/components/SpendBalanceChart";
 
 async function InsightsContent() {
   const supabase = await createClient();
@@ -22,6 +23,28 @@ async function InsightsContent() {
   ]);
 
   const insights = calcInsights(expenses ?? [], income ?? []);
+    const now = new Date();
+  const chartExpenses = (expenses ?? []).map((e) => {
+    const cat = e.categories as
+      | { name?: string }
+      | { name?: string }[]
+      | null;
+    const categoryName = Array.isArray(cat)
+      ? cat[0]?.name ?? null
+      : cat?.name ?? null;
+    return {
+      amount: e.amount,
+      rate_to_mad: e.rate_to_mad,
+      status: e.status,
+      spent_on: e.spent_on,
+      categoryName,
+    };
+  });
+  const chartIncome = (income ?? []).map((i) => ({
+    amount: i.amount,
+    rate_to_mad: i.rate_to_mad,
+    received_at: i.received_at,
+  }));
   const changed = calcWhatChanged(expenses ?? []);
   const review = buildWeeklyReview(expenses ?? [], income ?? []);
   // Template only — no Groq on first paint (faster)
@@ -54,6 +77,15 @@ async function InsightsContent() {
             {formatMoney(insights.incomeThisMonth)}
           </p>
         </div>
+      </section>
+
+      <section className="glass rounded-2xl p-4">
+        <SpendBalanceChart
+          year={now.getFullYear()}
+          monthIndex0={now.getMonth()}
+          expenses={chartExpenses}
+          income={chartIncome}
+        />
       </section>
 
       <div className="glass rounded-2xl p-4">
