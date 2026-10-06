@@ -95,7 +95,13 @@ async function DashboardNumbers() {
 
   return (
     <>
-      <div className="flex justify-end">
+        <div className="flex items-center justify-between gap-2">
+        <Link
+          href="/settings"
+          className="glass rounded-full px-3 py-1.5 text-xs font-medium"
+        >
+          Settings
+        </Link>
         <Link
           href="/money/expenses"
           className="glass-btn rounded-full px-4 py-2 text-sm font-medium"
